@@ -63,6 +63,7 @@ const memberFormSchema = z.object({
 	jabatan: z.string().min(1, "Jabatan wajib diisi"),
 	isPjo: z.boolean().default(false),
 	isHse: z.boolean().default(false),
+	isPengawas: z.boolean().default(false),
 	// Shared targets
 	targetTta: z.coerce.number().min(0).default(0),
 	targetHazard: z.coerce.number().min(0).default(7),
@@ -172,7 +173,7 @@ function RoleBadge({ member }: { member: TeamMember }) {
 				className="text-[10px] py-0 px-1.5 border-primary/50 text-primary gap-1"
 			>
 				<ShieldAlert className="h-2.5 w-2.5" />
-				PJO
+				{member.department}
 			</Badge>
 		);
 	if (member.isHse)
@@ -181,15 +182,16 @@ function RoleBadge({ member }: { member: TeamMember }) {
 				variant="outline"
 				className="text-[10px] py-0 px-1.5 border-blue-400 text-blue-600"
 			>
-				HSE
+				{member.department}
 			</Badge>
 		);
+
 	return (
 		<Badge
 			variant="outline"
 			className="text-[10px] py-0 px-1.5 border-emerald-400 text-emerald-600"
 		>
-			Pengawas
+			{member.department}
 		</Badge>
 	);
 }

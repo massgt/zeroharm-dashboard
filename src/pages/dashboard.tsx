@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
 	useListWeeks,
 	useGetDashboard,
@@ -16,7 +16,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	AlertCircle,
 	CheckCircle2,
@@ -41,8 +40,348 @@ import {
 	Cell,
 	Legend,
 	ResponsiveContainer,
+	Rectangle,
 } from "recharts";
 import type { MemberProgress } from "@/api-client";
+import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
+
+// ── Detail Kepatuhan Helpers ──────────────────────────────────────────────────────────────
+type ComplianceItem = {
+	actual: number;
+	target: number;
+	pct: number;
+};
+
+type ComplianceMember = {
+	nik: string;
+	name: string;
+	department?: string;
+	jabatan: string;
+	isPjo: boolean;
+	isHse: boolean;
+	isPengawas: boolean;
+	isOnLeave: boolean;
+
+	tta: ComplianceItem;
+	hazard: ComplianceItem;
+	inspeksi: ComplianceItem;
+	observasi: ComplianceItem;
+
+	opkKeberadaanPengawas: ComplianceItem;
+	opkFungsiPengawas: ComplianceItem;
+	opkPencahayaan: ComplianceItem;
+
+	opkP2h: ComplianceItem;
+	opkSeatbelt: ComplianceItem;
+	opkSimper: ComplianceItem;
+	opkRoster: ComplianceItem;
+	opkFatigue: ComplianceItem;
+	opkLototo: ComplianceItem;
+
+	overallPct: number;
+};
+
+function getStatusClass(pct: number) {
+	if (pct >= 100) {
+		return {
+			text: "text-emerald-600",
+			bar: "bg-emerald-500",
+			bg: "bg-emerald-50",
+		};
+	}
+
+	if (pct > 0) {
+		return {
+			text: "text-amber-600",
+			bar: "bg-amber-500",
+			bg: "bg-amber-50",
+		};
+	}
+
+	return {
+		text: "text-rose-600",
+		bar: "bg-rose-500",
+		bg: "bg-rose-50",
+	};
+}
+
+function ComplianceMetric({
+	label,
+	item,
+}: {
+	label: string;
+	item: ComplianceItem;
+}) {
+	if (item.target === 0) {
+		return (
+			<div className="min-w-0">
+				<div className="text-[11px] font-medium text-muted-foreground truncate">
+					{label}
+				</div>
+				<div className="mt-1 text-sm text-muted-foreground">—</div>
+			</div>
+		);
+	}
+
+	const status = getStatusClass(item.pct);
+
+	return (
+		<div className="min-w-0">
+			<div className="flex items-center justify-between gap-2">
+				<span className="text-[11px] font-medium text-muted-foreground truncate">
+					{label}
+				</span>
+
+				<span className={`text-xs font-bold ${status.text}`}>{item.pct}%</span>
+			</div>
+
+			<div className="mt-1 flex items-center gap-2">
+				<div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+					<div
+						className={`h-full rounded-full ${status.bar}`}
+						style={{ width: `${Math.min(item.pct, 100)}%` }}
+					/>
+				</div>
+
+				<span className="text-[10px] text-muted-foreground whitespace-nowrap">
+					{item.actual}/{item.target}
+				</span>
+			</div>
+		</div>
+	);
+}
+
+function OpkItem({ label, item }: { label: string; item?: ComplianceItem }) {
+	if (!item || item.target === 0) return null;
+
+	const status = getStatusClass(item.pct);
+
+	return (
+		<div className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 bg-muted/30">
+			<span className="text-[11px] text-muted-foreground truncate">
+				{label}
+			</span>
+
+			<div className="flex items-center gap-1.5 shrink-0">
+				<span className={`text-[11px] font-semibold ${status.text}`}>
+					{item.actual}/{item.target}
+				</span>
+
+				<span className={`text-[10px] font-bold ${status.text}`}>
+					{item.pct}%
+				</span>
+			</div>
+		</div>
+	);
+}
+
+function OpkGrid({ member }: { member: ComplianceMember }) {
+	if (member.isPjo) {
+		return (
+			<div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground italic">
+				-
+			</div>
+		);
+	}
+
+	if (member.isHse) {
+		return (
+			<div className="grid grid-cols-2 gap-2 min-w-[300px]">
+				<OpkItem label="Keberadaan" item={member.opkKeberadaanPengawas} />
+				<OpkItem label="Fungsi" item={member.opkFungsiPengawas} />
+				<OpkItem label="Pencahayaan" item={member.opkPencahayaan} />
+			</div>
+		);
+	}
+
+	return (
+		<div className="grid grid-cols-2 gap-2 min-w-[300px]">
+			<OpkItem label="P2H" item={member.opkP2h} />
+			<OpkItem label="Seatbelt" item={member.opkSeatbelt} />
+			<OpkItem label="Simper" item={member.opkSimper} />
+			<OpkItem label="Roster" item={member.opkRoster} />
+			<OpkItem label="Fatigue" item={member.opkFatigue} />
+			<OpkItem label="LOTOTO" item={member.opkLototo} />
+		</div>
+	);
+}
+
+function OverallStatus({ pct }: { pct: number }) {
+	const status = getStatusClass(pct);
+
+	return (
+		<div className="flex flex-col items-center justify-center min-w-[80px]">
+			<div className={`text-xl font-bold ${status.text}`}>{pct}%</div>
+
+			<div className="mt-2 h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+				<div
+					className={`h-full rounded-full ${status.bar}`}
+					style={{ width: `${Math.min(pct, 100)}%` }}
+				/>
+			</div>
+		</div>
+	);
+}
+
+// --- Table Component Detail Kepatuhan -----------------------------------------
+function ComplianceMemberTable({ members }: { members: ComplianceMember[] }) {
+	const [view, setView] = useState<"all" | "onsite">("onsite");
+
+	const onsiteMembers = members.filter((m) => !m.isOnLeave);
+	const displayedMembers = view === "onsite" ? onsiteMembers : members;
+
+	return (
+		<div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+			{/* Header */}
+			<div className="flex items-center justify-between gap-4 px-6 py-5 border-b">
+				<div>
+					<h2 className="text-lg font-semibold tracking-tight">
+						Detail Kepatuhan per Anggota
+					</h2>
+
+					<p className="text-sm text-muted-foreground mt-1">
+						Rincian pencapaian target SAP dan OPK setiap anggota
+					</p>
+				</div>
+
+				<div className="flex items-center rounded-xl bg-muted p-1 shrink-0">
+					<button
+						type="button"
+						onClick={() => setView("all")}
+						className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+							view === "all"
+								? "bg-background shadow-sm text-foreground"
+								: "text-muted-foreground hover:text-foreground"
+						}`}
+					>
+						Semua <span className="ml-1 font-bold">{members.length}</span>
+					</button>
+
+					<button
+						type="button"
+						onClick={() => setView("onsite")}
+						className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+							view === "onsite"
+								? "bg-background shadow-sm text-foreground"
+								: "text-muted-foreground hover:text-foreground"
+						}`}
+					>
+						Onsite{" "}
+						<span className="ml-1 font-bold">{onsiteMembers.length}</span>
+					</button>
+				</div>
+			</div>
+
+			{/* Table */}
+			<div className="overflow-x-auto">
+				<table className="w-full border-collapse">
+					<thead>
+						<tr className="bg-muted/40 border-b">
+							<th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+								Nama & Jabatan
+							</th>
+
+							<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground min-w-[130px]">
+								TTA
+							</th>
+
+							<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground min-w-[130px]">
+								Hazard
+							</th>
+
+							<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground min-w-[130px]">
+								Inspeksi
+							</th>
+
+							<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground min-w-[130px]">
+								Observasi
+							</th>
+
+							<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground min-w-[330px]">
+								OPK
+							</th>
+
+							<th className="px-5 py-3 text-center text-xs font-semibold text-muted-foreground">
+								Overall
+							</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						{displayedMembers.map((member) => (
+							<tr
+								key={member.nik}
+								className={`border-b last:border-b-0 transition-colors hover:bg-muted/20 ${
+									member.isOnLeave ? "opacity-60" : ""
+								}`}
+							>
+								{/* Nama */}
+								<td className="px-5 py-4 align-top min-w-[220px]">
+									<div className="font-semibold text-sm text-foreground">
+										{member.name}
+									</div>
+									<div className="mt-1 flex items-center gap-2 whitespace-nowrap">
+										<span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
+											{member.jabatan}
+										</span>
+
+										<span className="text-[10px] text-muted-foreground">•</span>
+
+										<span className="text-[10px] text-muted-foreground">
+											{member.nik}
+										</span>
+									</div>
+									{member.isOnLeave && (
+										<span className="inline-flex mt-2 rounded-md bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground">
+											Cuti / Tidak dihitung
+										</span>
+									)}
+								</td>
+
+								{/* TTA */}
+								<td className="px-4 py-4 align-top">
+									<ComplianceMetric label="" item={member.tta} />
+								</td>
+
+								{/* Hazard */}
+								<td className="px-4 py-4 align-top">
+									<ComplianceMetric label="" item={member.hazard} />
+								</td>
+
+								{/* Inspeksi */}
+								<td className="px-4 py-4 align-top">
+									<ComplianceMetric label="" item={member.inspeksi} />
+								</td>
+
+								{/* Observasi */}
+								<td className="px-4 py-4 align-top">
+									<ComplianceMetric label="" item={member.observasi} />
+								</td>
+
+								{/* OPK */}
+								<td className="px-4 py-4 align-top">
+									<OpkGrid member={member} />
+								</td>
+
+								{/* Overall */}
+								<td className="px-5 py-4 align-top">
+									<OverallStatus pct={member.overallPct} />
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+
+			{displayedMembers.length === 0 && (
+				<div className="px-6 py-12 text-center text-sm text-muted-foreground">
+					Tidak ada data anggota.
+				</div>
+			)}
+		</div>
+	);
+}
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 function getWeekDueDate(weekStr: string, year: number): Date {
@@ -101,8 +440,6 @@ const barColor = (pct: number) =>
 	pct >= 100 ? "bg-emerald-500" : pct > 0 ? "bg-amber-500" : "bg-rose-500";
 
 const PIE_COLORS = ["#10b981", "#f59e0b", "#f43f5e"];
-
-type FilterMode = "semua" | "onsite";
 
 // ── Progress cell ──────────────────────────────────────────────────────────────
 function ProgressCell({
@@ -188,13 +525,127 @@ function OpkSubtypeCell({ member }: { member: MemberProgress }) {
 	);
 }
 
+function InspectionTimeTooltip({
+	active,
+	payload,
+}: {
+	active?: boolean;
+	payload?: any[];
+}) {
+	if (!active || !payload || payload.length === 0) return null;
+
+	const item = payload[0]?.payload;
+
+	if (!item) return null;
+
+	return (
+		<div className="rounded-lg border bg-card px-4 py-3 shadow-md min-w-[220px]">
+			<div className="font-semibold text-sm text-foreground">
+				{item.fullName}
+			</div>
+
+			<div className="text-xs text-muted-foreground mt-0.5">{item.jabatan}</div>
+
+			<div className="border-t my-2" />
+
+			<div className="flex items-center justify-between gap-6 text-xs">
+				<span className="text-muted-foreground">Kesesuaian Waktu</span>
+				<span
+					className={`font-bold ${
+						item.pct === null
+							? "text-muted-foreground"
+							: item.pct >= 100
+								? "text-emerald-600"
+								: "text-amber-600"
+					}`}
+				>
+					{item.pct === null ? "—" : `${item.pct}%`}
+				</span>
+			</div>
+
+			<div className="flex items-center justify-between gap-6 text-xs mt-1.5">
+				<span className="text-muted-foreground">Sesuai</span>
+				<span className="font-semibold text-emerald-600">{item.sesuai}</span>
+			</div>
+
+			<div className="flex items-center justify-between gap-6 text-xs mt-1.5">
+				<span className="text-muted-foreground">Tidak Sesuai</span>
+				<span className="font-semibold text-rose-600">{item.tidakSesuai}</span>
+			</div>
+
+			<div className="flex items-center justify-between gap-6 text-xs mt-1.5">
+				<span className="text-muted-foreground">Total Inspeksi</span>
+				<span className="font-semibold text-foreground">{item.total}</span>
+			</div>
+		</div>
+	);
+}
+
+function InspectionTimeBarShape(props: any) {
+	const { x, y, width, height, fill, payload } = props;
+
+	// Tidak ada inspeksi sama sekali
+	if (payload.total === 0) {
+		return (
+			<Rectangle
+				x={x}
+				y={y}
+				width={Math.max(width, 0)}
+				height={height}
+				fill="#d1d5db"
+				radius={4}
+			/>
+		);
+	}
+
+	// Ada inspeksi tetapi 0% sesuai:
+	// tampilkan marker orange kecil di titik 0%
+	if (payload.pct === 0) {
+		return (
+			<Rectangle
+				x={x}
+				y={y}
+				width={6}
+				height={height}
+				fill="#f59e0b"
+				radius={4}
+			/>
+		);
+	}
+
+	// Normal
+	return (
+		<Rectangle
+			x={x}
+			y={y}
+			width={width}
+			height={height}
+			fill={fill}
+			radius={[0, 4, 4, 0]}
+		/>
+	);
+}
+
 // ── Main Dashboard ─────────────────────────────────────────────────────────────
 export default function Dashboard() {
+	const dashboardRef = useRef<HTMLDivElement>(null);
+	const handleCapture = async () => {
+		if (!dashboardRef.current) return;
+
+		const dataUrl = await toPng(dashboardRef.current, {
+			cacheBust: true,
+			pixelRatio: 2,
+		});
+
+		const link = document.createElement("a");
+		link.download = `dashboard-${selectedWeek}.png`;
+		link.href = dataUrl;
+		link.click();
+	};
 	const { data: weeks, isLoading: isLoadingWeeks } = useListWeeks({
 		query: { queryKey: getListWeeksQueryKey() },
 	});
 	const [selectedWeek, setSelectedWeek] = useState<string>("");
-	const [tableFilter, setTableFilter] = useState<FilterMode>("semua");
 
 	useEffect(() => {
 		if (weeks && weeks.length > 0 && !selectedWeek) {
@@ -257,17 +708,33 @@ export default function Dashboard() {
 	const onLeaveList = dashboard?.members.filter((m) => m.isOnLeave) || [];
 	const activeMembers = dashboard?.members.filter((m) => !m.isOnLeave) || [];
 
-	const filteredTableMembers: MemberProgress[] = dashboard
-		? tableFilter === "onsite"
-			? dashboard.members.filter((m) => !m.isOnLeave)
-			: dashboard.members
-		: [];
-
 	const barChartData = activeMembers.map((m) => ({
 		name: m.name.split(" ")[0],
 		fullName: m.name,
 		overall: m.overallPct,
 	}));
+
+	const inspectionTimeChartData = activeMembers.map((m) => {
+		const compliance = m.inspectionTimeCompliance;
+
+		const total = compliance?.total ?? 0;
+		const sesuai = compliance?.sesuai ?? 0;
+		const tidakSesuai = compliance?.tidakSesuai ?? 0;
+
+		// Jika ada inspeksi, hitung persentase dari data aktual
+		// Jika belum ada inspeksi, null = tidak ada data
+		const pct = total > 0 ? Math.round((sesuai / total) * 100) : null;
+
+		return {
+			name: m.name.split(" ")[0],
+			fullName: m.name,
+			jabatan: m.jabatan,
+			pct,
+			total,
+			sesuai,
+			tidakSesuai,
+		};
+	});
 
 	const pieData = dashboard
 		? [
@@ -336,6 +803,11 @@ export default function Dashboard() {
 								actual: sum(hse, "opkFungsiPengawas", "actual"),
 								target: sum(hse, "opkFungsiPengawas", "target"),
 							},
+							{
+								label: "OPK Pencahayaan (HSE)",
+								actual: sum(hse, "opkPencahayaan", "actual"),
+								target: sum(hse, "opkPencahayaan", "target"),
+							},
 						);
 					}
 					if (pengawas.length > 0) {
@@ -386,250 +858,420 @@ export default function Dashboard() {
 			: [];
 
 	return (
-		<div className="space-y-6">
-			{/* Header */}
-			<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-				<div>
-					<h1 className="text-3xl font-bold tracking-tight">
-						Dashboard Kepatuhan SAP
-					</h1>
-					<p className="text-muted-foreground mt-1">
-						Monitoring TTA, Hazard, Inspeksi, Observasi & OPK per anggota
-					</p>
-				</div>
-				<div className="flex flex-col items-end gap-2 shrink-0">
-					<Select value={selectedWeek} onValueChange={setSelectedWeek}>
-						<SelectTrigger className="w-[200px]">
-							<SelectValue placeholder="Pilih Minggu" />
-						</SelectTrigger>
-						<SelectContent>
-							{weeks.map((w) => (
-								<SelectItem key={w.week} value={w.week}>
-									{w.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					{dueDate && daysInfo && (
-						<div
-							className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium
+		<main id="dashboard-capture">
+			<div className="space-y-6" ref={dashboardRef}>
+				{/* Header */}
+				<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+					<div>
+						<h1 className="text-3xl font-bold tracking-tight">
+							Dashboard Kepatuhan SAP
+						</h1>
+						<p className="text-muted-foreground mt-1">
+							Monitoring TTA, Hazard, Inspeksi, Observasi & OPK per anggota
+						</p>
+					</div>
+					<div className="flex flex-col items-end gap-2 shrink-0">
+						<Select value={selectedWeek} onValueChange={setSelectedWeek}>
+							<SelectTrigger className="w-[200px]">
+								<SelectValue placeholder="Pilih Minggu" />
+							</SelectTrigger>
+							<SelectContent>
+								{weeks.map((w) => (
+									<SelectItem key={w.week} value={w.week}>
+										{w.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{dueDate && daysInfo && (
+							<div
+								className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium
               ${daysInfo.past ? "border-muted text-muted-foreground" : daysInfo.urgent ? "border-rose-400 bg-rose-500/10 text-rose-600" : "border-emerald-400 bg-emerald-500/10 text-emerald-600"}`}
-						>
-							<CalendarClock className="h-3 w-3" />
-							<span>Deadline: {formatDate(dueDate)}</span>
-							<span className="opacity-60">•</span>
-							<Clock className="h-3 w-3" />
-							<span>{daysInfo.label}</span>
-						</div>
-					)}
-				</div>
-			</div>
-
-			{isLoadingDashboard ? (
-				<div className="space-y-4">
-					<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-						{[...Array(5)].map((_, i) => (
-							<Skeleton key={i} className="h-28" />
-						))}
+							>
+								<CalendarClock className="h-3 w-3" />
+								<span>Deadline: {formatDate(dueDate)}</span>
+								<span className="opacity-60">•</span>
+								<Clock className="h-3 w-3" />
+								<span>{daysInfo.label}</span>
+							</div>
+						)}
 					</div>
-					<Skeleton className="h-[320px]" />
-					<Skeleton className="h-[400px]" />
 				</div>
-			) : dashboard ? (
-				<>
-					{/* KPI Cards */}
-					<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-						<Card>
-							<CardContent className="p-5">
-								<div className="flex items-center justify-between mb-3">
-									<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-										Total Anggota
-									</p>
-									<Users className="h-4 w-4 text-muted-foreground" />
-								</div>
-								<div className="text-4xl font-bold">
-									{dashboard.summary.totalMembers}
-								</div>
-								<p className="text-xs text-muted-foreground mt-1">
-									anggota aktif (onsite)
-								</p>
-							</CardContent>
-						</Card>
 
-						<Card className="border-emerald-500/40 bg-emerald-500/5">
-							<CardContent className="p-5">
-								<div className="flex items-center justify-between mb-3">
-									<p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">
-										Selesai
+				{isLoadingDashboard ? (
+					<div className="space-y-4">
+						<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+							{[...Array(5)].map((_, i) => (
+								<Skeleton key={i} className="h-28" />
+							))}
+						</div>
+						<Skeleton className="h-[320px]" />
+						<Skeleton className="h-[400px]" />
+					</div>
+				) : dashboard ? (
+					<>
+						{/* KPI Cards */}
+						<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+							<Card>
+								<CardContent className="p-5">
+									<div className="flex items-center justify-between mb-3">
+										<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+											Total Anggota
+										</p>
+										<Users className="h-4 w-4 text-muted-foreground" />
+									</div>
+									<div className="text-4xl font-bold">
+										{dashboard.summary.totalMembers}
+									</div>
+									<p className="text-xs text-muted-foreground mt-1">
+										anggota aktif (onsite)
 									</p>
-									<CheckCircle2 className="h-4 w-4 text-emerald-500" />
-								</div>
-								<div className="text-4xl font-bold text-emerald-600">
-									{dashboard.summary.fullyCompliant}
-								</div>
-								<p className="text-xs text-emerald-600/70 mt-1">
-									mencapai 100% target
-								</p>
-							</CardContent>
-						</Card>
+								</CardContent>
+							</Card>
 
-						<Card className="border-amber-500/40 bg-amber-500/5">
-							<CardContent className="p-5">
-								<div className="flex items-center justify-between mb-3">
-									<p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
-										Sebagian
+							<Card className="border-emerald-500/40 bg-emerald-500/5">
+								<CardContent className="p-5">
+									<div className="flex items-center justify-between mb-3">
+										<p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">
+											Selesai
+										</p>
+										<CheckCircle2 className="h-4 w-4 text-emerald-500" />
+									</div>
+									<div className="text-4xl font-bold text-emerald-600">
+										{dashboard.summary.fullyCompliant}
+									</div>
+									<p className="text-xs text-emerald-600/70 mt-1">
+										mencapai 100% target
 									</p>
-									<AlertTriangle className="h-4 w-4 text-amber-500" />
-								</div>
-								<div className="text-4xl font-bold text-amber-600">
-									{dashboard.summary.partiallyCompliant}
-								</div>
-								<p className="text-xs text-amber-600/70 mt-1">
-									laporan 1–99% target
-								</p>
-							</CardContent>
-						</Card>
+								</CardContent>
+							</Card>
 
-						<Card className="border-rose-500/40 bg-rose-500/5">
-							<CardContent className="p-5">
-								<div className="flex items-center justify-between mb-3">
-									<p className="text-xs font-semibold text-rose-600 uppercase tracking-wide">
-										Belum Lapor
+							<Card className="border-amber-500/40 bg-amber-500/5">
+								<CardContent className="p-5">
+									<div className="flex items-center justify-between mb-3">
+										<p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
+											Sebagian
+										</p>
+										<AlertTriangle className="h-4 w-4 text-amber-500" />
+									</div>
+									<div className="text-4xl font-bold text-amber-600">
+										{dashboard.summary.partiallyCompliant}
+									</div>
+									<p className="text-xs text-amber-600/70 mt-1">
+										laporan 1–99% target
 									</p>
-									<XCircle className="h-4 w-4 text-rose-500" />
-								</div>
-								<div className="text-4xl font-bold text-rose-600">
-									{dashboard.summary.notReported}
-								</div>
-								<p className="text-xs text-rose-600/70 mt-1">
-									tidak ada laporan sama sekali
-								</p>
-							</CardContent>
-						</Card>
+								</CardContent>
+							</Card>
 
-						<Card
-							className={`col-span-2 md:col-span-1 ${dashboard.summary.overallPct >= 100 ? "border-emerald-500/40 bg-emerald-500/5" : dashboard.summary.overallPct > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-rose-500/40 bg-rose-500/5"}`}
-						>
-							<CardContent className="p-5">
-								<div className="flex items-center justify-between mb-3">
-									<p
-										className={`text-xs font-semibold uppercase tracking-wide ${pctColor(dashboard.summary.overallPct)}`}
+							<Card className="border-rose-500/40 bg-rose-500/5">
+								<CardContent className="p-5">
+									<div className="flex items-center justify-between mb-3">
+										<p className="text-xs font-semibold text-rose-600 uppercase tracking-wide">
+											Belum Lapor
+										</p>
+										<XCircle className="h-4 w-4 text-rose-500" />
+									</div>
+									<div className="text-4xl font-bold text-rose-600">
+										{dashboard.summary.notReported}
+									</div>
+									<p className="text-xs text-rose-600/70 mt-1">
+										tidak ada laporan sama sekali
+									</p>
+								</CardContent>
+							</Card>
+
+							<Card
+								className={`col-span-2 md:col-span-1 ${dashboard.summary.overallPct >= 100 ? "border-emerald-500/40 bg-emerald-500/5" : dashboard.summary.overallPct > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-rose-500/40 bg-rose-500/5"}`}
+							>
+								<CardContent className="p-5">
+									<div className="flex items-center justify-between mb-3">
+										<p
+											className={`text-xs font-semibold uppercase tracking-wide ${pctColor(dashboard.summary.overallPct)}`}
+										>
+											Kepatuhan Total
+										</p>
+										<AlertCircle
+											className={`h-4 w-4 ${pctColor(dashboard.summary.overallPct)}`}
+										/>
+									</div>
+									<div
+										className={`text-4xl font-bold ${pctColor(dashboard.summary.overallPct)}`}
 									>
-										Kepatuhan Total
+										{dashboard.summary.overallPct}%
+									</div>
+									<p
+										className={`text-xs mt-1 ${pctColor(dashboard.summary.overallPct)} opacity-70`}
+									>
+										rata-rata kepatuhan tim
 									</p>
-									<AlertCircle
-										className={`h-4 w-4 ${pctColor(dashboard.summary.overallPct)}`}
-									/>
-								</div>
-								<div
-									className={`text-4xl font-bold ${pctColor(dashboard.summary.overallPct)}`}
-								>
-									{dashboard.summary.overallPct}%
-								</div>
-								<p
-									className={`text-xs mt-1 ${pctColor(dashboard.summary.overallPct)} opacity-70`}
-								>
-									rata-rata kepatuhan tim
-								</p>
-							</CardContent>
-						</Card>
-					</div>
-
-					{/* Belum Lapor + Cuti */}
-					{(notReportedList.length > 0 || onLeaveList.length > 0) && (
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-							{notReportedList.length > 0 && (
-								<Card className="border-rose-500/30 bg-rose-500/5">
-									<CardHeader className="pb-3">
-										<CardTitle className="text-sm font-semibold text-rose-600 flex items-center gap-2">
-											<XCircle className="h-4 w-4" />
-											Belum Melapor Sama Sekali
-											<Badge className="ml-auto bg-rose-500 text-white text-xs">
-												{notReportedList.length}
-											</Badge>
-										</CardTitle>
-									</CardHeader>
-									<CardContent className="pt-0">
-										<div className="flex flex-wrap gap-2">
-											{notReportedList.map((m) => (
-												<div
-													key={m.nik}
-													className="flex flex-col bg-background border border-rose-300/50 rounded-lg px-3 py-2 min-w-[140px]"
-												>
-													<span className="text-sm font-medium leading-tight">
-														{m.name}
-													</span>
-													<span className="text-[11px] text-muted-foreground mt-0.5">
-														{m.nik} • {m.jabatan}
-													</span>
-												</div>
-											))}
-										</div>
-									</CardContent>
-								</Card>
-							)}
-							{onLeaveList.length > 0 && (
-								<Card className="border-amber-400/30 bg-amber-500/5">
-									<CardHeader className="pb-3">
-										<CardTitle className="text-sm font-semibold text-amber-600 flex items-center gap-2">
-											<PlaneTakeoff className="h-4 w-4" />
-											Sedang Cuti (Tidak Dihitung)
-											<Badge className="ml-auto bg-amber-500 text-white text-xs">
-												{onLeaveList.length}
-											</Badge>
-										</CardTitle>
-									</CardHeader>
-									<CardContent className="pt-0">
-										<div className="flex flex-wrap gap-2">
-											{onLeaveList.map((m) => (
-												<div
-													key={m.nik}
-													className="flex flex-col bg-background border border-amber-300/50 rounded-lg px-3 py-2 min-w-[140px]"
-												>
-													<span className="text-sm font-medium leading-tight">
-														{m.name}
-													</span>
-													<span className="text-[11px] text-muted-foreground mt-0.5">
-														{m.nik} • {m.jabatan}
-													</span>
-												</div>
-											))}
-										</div>
-									</CardContent>
-								</Card>
-							)}
+								</CardContent>
+							</Card>
 						</div>
-					)}
 
-					{/* Charts */}
-					<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-						<Card className="lg:col-span-2">
+						{/* Belum Lapor + Cuti */}
+						{(notReportedList.length > 0 || onLeaveList.length > 0) && (
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								{notReportedList.length > 0 && (
+									<Card className="border-rose-500/30 bg-rose-500/5">
+										<CardHeader className="pb-3">
+											<CardTitle className="text-sm font-semibold text-rose-600 flex items-center gap-2">
+												<XCircle className="h-4 w-4" />
+												Belum Melapor Sama Sekali
+												<Badge className="ml-auto bg-rose-500 text-white text-xs">
+													{notReportedList.length}
+												</Badge>
+											</CardTitle>
+										</CardHeader>
+										<CardContent className="pt-0">
+											<div className="flex flex-wrap gap-2">
+												{notReportedList.map((m) => (
+													<div
+														key={m.nik}
+														className="flex flex-col bg-background border border-rose-300/50 rounded-lg px-3 py-2 min-w-[140px]"
+													>
+														<span className="text-sm font-medium leading-tight">
+															{m.name}
+														</span>
+														<span className="text-[11px] text-muted-foreground mt-0.5">
+															{m.nik} • {m.jabatan}
+														</span>
+													</div>
+												))}
+											</div>
+										</CardContent>
+									</Card>
+								)}
+								{onLeaveList.length > 0 && (
+									<Card className="border-amber-400/30 bg-amber-500/5">
+										<CardHeader className="pb-3">
+											<CardTitle className="text-sm font-semibold text-amber-600 flex items-center gap-2">
+												<PlaneTakeoff className="h-4 w-4" />
+												Sedang Cuti (Tidak Dihitung)
+												<Badge className="ml-auto bg-amber-500 text-white text-xs">
+													{onLeaveList.length}
+												</Badge>
+											</CardTitle>
+										</CardHeader>
+										<CardContent className="pt-0">
+											<div className="flex flex-wrap gap-2">
+												{onLeaveList.map((m) => (
+													<div
+														key={m.nik}
+														className="flex flex-col bg-background border border-amber-300/50 rounded-lg px-3 py-2 min-w-[140px]"
+													>
+														<span className="text-sm font-medium leading-tight">
+															{m.name}
+														</span>
+														<span className="text-[11px] text-muted-foreground mt-0.5">
+															{m.nik} • {m.jabatan}
+														</span>
+													</div>
+												))}
+											</div>
+										</CardContent>
+									</Card>
+								)}
+							</div>
+						)}
+
+						{/* Charts */}
+						<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+							<Card className="lg:col-span-2">
+								<CardHeader className="pb-2">
+									<CardTitle className="text-sm font-semibold">
+										Tingkat Kepatuhan per Anggota
+									</CardTitle>
+									<p className="text-xs text-muted-foreground">
+										Persentase overall tiap anggota onsite minggu ini
+									</p>
+								</CardHeader>
+								<CardContent>
+									{barChartData.length === 0 ? (
+										<div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+											Tidak ada data anggota onsite
+										</div>
+									) : (
+										<div className="h-[220px]">
+											<ResponsiveContainer width="100%" height="100%">
+												<BarChart
+													data={barChartData}
+													layout="vertical"
+													margin={{ top: 0, right: 40, left: 0, bottom: 0 }}
+												>
+													<CartesianGrid
+														strokeDasharray="3 3"
+														horizontal={false}
+														stroke="hsl(var(--border))"
+													/>
+													<XAxis
+														type="number"
+														domain={[0, 100]}
+														tick={{
+															fontSize: 11,
+															fill: "hsl(var(--muted-foreground))",
+														}}
+														tickFormatter={(v) => `${v}%`}
+													/>
+													<YAxis
+														type="category"
+														dataKey="name"
+														tick={{
+															fontSize: 11,
+															fill: "hsl(var(--muted-foreground))",
+														}}
+														width={60}
+													/>
+													<Tooltip
+														formatter={(val: number, _name: string, props) => [
+															`${val}%`,
+															props.payload.fullName,
+														]}
+														contentStyle={{
+															fontSize: 12,
+															background: "hsl(var(--card))",
+															border: "1px solid hsl(var(--border))",
+															borderRadius: 6,
+														}}
+														labelStyle={{ display: "none" }}
+													/>
+													<Bar
+														dataKey="overall"
+														radius={[0, 4, 4, 0]}
+														maxBarSize={20}
+													>
+														{barChartData.map((entry, i) => (
+															<Cell
+																key={i}
+																fill={
+																	entry.overall >= 100
+																		? "#10b981"
+																		: entry.overall > 0
+																			? "#f59e0b"
+																			: "#f43f5e"
+																}
+															/>
+														))}
+													</Bar>
+												</BarChart>
+											</ResponsiveContainer>
+										</div>
+									)}
+								</CardContent>
+							</Card>
+
+							<Card>
+								<CardHeader className="pb-2">
+									<CardTitle className="text-sm font-semibold">
+										Distribusi Status
+									</CardTitle>
+									<p className="text-xs text-muted-foreground">
+										Proporsi kepatuhan anggota onsite
+									</p>
+								</CardHeader>
+								<CardContent>
+									{pieData.length === 0 ? (
+										<div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+											Tidak ada data
+										</div>
+									) : (
+										<div className="h-[220px]">
+											<ResponsiveContainer width="100%" height="100%">
+												<PieChart>
+													<Pie
+														data={pieData}
+														cx="50%"
+														cy="45%"
+														innerRadius={55}
+														outerRadius={80}
+														paddingAngle={3}
+														dataKey="value"
+													>
+														{pieData.map((_, i) => (
+															<Cell
+																key={i}
+																fill={PIE_COLORS[i % PIE_COLORS.length]}
+															/>
+														))}
+													</Pie>
+													<Legend
+														iconType="circle"
+														iconSize={8}
+														formatter={(v) => (
+															<span
+																style={{
+																	fontSize: 11,
+																	color: "hsl(var(--muted-foreground))",
+																}}
+															>
+																{v}
+															</span>
+														)}
+													/>
+													<Tooltip
+														formatter={(val: number, name: string) => [
+															`${val} orang`,
+															name,
+														]}
+														contentStyle={{
+															fontSize: 12,
+															background: "hsl(var(--card))",
+															border: "1px solid hsl(var(--border))",
+															borderRadius: 6,
+														}}
+													/>
+												</PieChart>
+											</ResponsiveContainer>
+										</div>
+									)}
+								</CardContent>
+							</Card>
+						</div>
+
+						{/* Kesesuaian Waktu Pelaporan Inspeksi */}
+						<Card>
 							<CardHeader className="pb-2">
 								<CardTitle className="text-sm font-semibold">
-									Tingkat Kepatuhan per Anggota
+									Kesesuaian Waktu Pelaporan Inspeksi
 								</CardTitle>
+
 								<p className="text-xs text-muted-foreground">
-									Persentase overall tiap anggota onsite minggu ini
+									Persentase laporan inspeksi yang dilaporkan pada waktu yang
+									sesuai ketentuan per anggota onsite
 								</p>
 							</CardHeader>
+
 							<CardContent>
-								{barChartData.length === 0 ? (
+								{inspectionTimeChartData.length === 0 ? (
 									<div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-										Tidak ada data anggota onsite
+										Belum ada data kesesuaian waktu pelaporan
 									</div>
 								) : (
-									<div className="h-[220px]">
+									<div
+										className="w-full"
+										style={{
+											height: Math.max(
+												220,
+												inspectionTimeChartData.length * 42,
+											),
+										}}
+									>
 										<ResponsiveContainer width="100%" height="100%">
 											<BarChart
-												data={barChartData}
+												data={inspectionTimeChartData}
 												layout="vertical"
-												margin={{ top: 0, right: 40, left: 0, bottom: 0 }}
+												margin={{
+													top: 0,
+													right: 50,
+													left: 0,
+													bottom: 0,
+												}}
 											>
 												<CartesianGrid
 													strokeDasharray="3 3"
 													horizontal={false}
 													stroke="hsl(var(--border))"
 												/>
+
 												<XAxis
 													type="number"
 													domain={[0, 100]}
@@ -639,6 +1281,7 @@ export default function Dashboard() {
 													}}
 													tickFormatter={(v) => `${v}%`}
 												/>
+
 												<YAxis
 													type="category"
 													dataKey="name"
@@ -646,35 +1289,26 @@ export default function Dashboard() {
 														fontSize: 11,
 														fill: "hsl(var(--muted-foreground))",
 													}}
-													width={60}
+													width={70}
 												/>
-												<Tooltip
-													formatter={(val: number, _name: string, props) => [
-														`${val}%`,
-														props.payload.fullName,
-													]}
-													contentStyle={{
-														fontSize: 12,
-														background: "hsl(var(--card))",
-														border: "1px solid hsl(var(--border))",
-														borderRadius: 6,
-													}}
-													labelStyle={{ display: "none" }}
-												/>
+
+												<Tooltip content={<InspectionTimeTooltip />} />
+
 												<Bar
-													dataKey="overall"
-													radius={[0, 4, 4, 0]}
-													maxBarSize={20}
+													dataKey="pct"
+													maxBarSize={24}
+													shape={<InspectionTimeBarShape />}
+													isAnimationActive={false}
 												>
-													{barChartData.map((entry, i) => (
+													{inspectionTimeChartData.map((entry, i) => (
 														<Cell
 															key={i}
 															fill={
-																entry.overall >= 100
-																	? "#10b981"
-																	: entry.overall > 0
-																		? "#f59e0b"
-																		: "#f43f5e"
+																entry.pct === null
+																	? "#d1d5db"
+																	: entry.pct >= 100
+																		? "#10b981"
+																		: "#f59e0b"
 															}
 														/>
 													))}
@@ -686,289 +1320,61 @@ export default function Dashboard() {
 							</CardContent>
 						</Card>
 
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-sm font-semibold">
-									Distribusi Status
-								</CardTitle>
-								<p className="text-xs text-muted-foreground">
-									Proporsi kepatuhan anggota onsite
-								</p>
-							</CardHeader>
-							<CardContent>
-								{pieData.length === 0 ? (
-									<div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-										Tidak ada data
+						{/* Category Summary */}
+						{categorySummary.length > 0 && (
+							<Card>
+								<CardHeader className="pb-2">
+									<CardTitle className="text-sm font-semibold">
+										Rekapitulasi per Kategori
+									</CardTitle>
+									<p className="text-xs text-muted-foreground">
+										Total laporan vs target semua anggota onsite
+									</p>
+								</CardHeader>
+								<CardContent>
+									<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+										{categorySummary.map(({ label, actual, target, pct }) => (
+											<div key={label} className="space-y-1.5">
+												<div className="flex items-center justify-between">
+													<span
+														className="text-xs font-medium truncate max-w-[100px]"
+														title={label}
+													>
+														{label}
+													</span>
+													<span
+														className={`text-xs font-bold ${pctColor(pct)}`}
+													>
+														{pct}%
+													</span>
+												</div>
+												<div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+													<div
+														className={`h-full rounded-full transition-all ${barColor(pct)}`}
+														style={{ width: `${pct}%` }}
+													/>
+												</div>
+												<p className="text-[10px] text-muted-foreground">
+													{actual} / {target}
+												</p>
+											</div>
+										))}
 									</div>
-								) : (
-									<div className="h-[220px]">
-										<ResponsiveContainer width="100%" height="100%">
-											<PieChart>
-												<Pie
-													data={pieData}
-													cx="50%"
-													cy="45%"
-													innerRadius={55}
-													outerRadius={80}
-													paddingAngle={3}
-													dataKey="value"
-												>
-													{pieData.map((_, i) => (
-														<Cell
-															key={i}
-															fill={PIE_COLORS[i % PIE_COLORS.length]}
-														/>
-													))}
-												</Pie>
-												<Legend
-													iconType="circle"
-													iconSize={8}
-													formatter={(v) => (
-														<span
-															style={{
-																fontSize: 11,
-																color: "hsl(var(--muted-foreground))",
-															}}
-														>
-															{v}
-														</span>
-													)}
-												/>
-												<Tooltip
-													formatter={(val: number, name: string) => [
-														`${val} orang`,
-														name,
-													]}
-													contentStyle={{
-														fontSize: 12,
-														background: "hsl(var(--card))",
-														border: "1px solid hsl(var(--border))",
-														borderRadius: 6,
-													}}
-												/>
-											</PieChart>
-										</ResponsiveContainer>
-									</div>
-								)}
-							</CardContent>
-						</Card>
+								</CardContent>
+							</Card>
+						)}
+
+						{/* Detail Kepatuhan per Anggota */}
+						<ComplianceMemberTable
+							members={dashboard.members as ComplianceMember[]}
+						/>
+					</>
+				) : (
+					<div className="flex items-center justify-center py-24 text-muted-foreground text-sm">
+						Pilih minggu untuk melihat data
 					</div>
-
-					{/* Category Summary */}
-					{categorySummary.length > 0 && (
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-sm font-semibold">
-									Rekapitulasi per Kategori
-								</CardTitle>
-								<p className="text-xs text-muted-foreground">
-									Total laporan vs target semua anggota onsite
-								</p>
-							</CardHeader>
-							<CardContent>
-								<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-									{categorySummary.map(({ label, actual, target, pct }) => (
-										<div key={label} className="space-y-1.5">
-											<div className="flex items-center justify-between">
-												<span
-													className="text-xs font-medium truncate max-w-[100px]"
-													title={label}
-												>
-													{label}
-												</span>
-												<span className={`text-xs font-bold ${pctColor(pct)}`}>
-													{pct}%
-												</span>
-											</div>
-											<div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-												<div
-													className={`h-full rounded-full transition-all ${barColor(pct)}`}
-													style={{ width: `${pct}%` }}
-												/>
-											</div>
-											<p className="text-[10px] text-muted-foreground">
-												{actual} / {target}
-											</p>
-										</div>
-									))}
-								</div>
-							</CardContent>
-						</Card>
-					)}
-
-					{/* Detail Table */}
-					<Card className="overflow-hidden">
-						<CardHeader className="pb-3">
-							<div className="flex items-center justify-between flex-wrap gap-2">
-								<CardTitle className="text-sm font-semibold">
-									Detail Kepatuhan per Anggota
-								</CardTitle>
-								<Tabs
-									value={tableFilter}
-									onValueChange={(v) => setTableFilter(v as FilterMode)}
-								>
-									<TabsList className="h-8 text-xs">
-										<TabsTrigger value="semua" className="text-xs px-3">
-											Semua
-											<Badge
-												variant="secondary"
-												className="ml-1.5 h-4 px-1 text-[10px]"
-											>
-												{dashboard.members.length}
-											</Badge>
-										</TabsTrigger>
-										<TabsTrigger value="onsite" className="text-xs px-3">
-											Onsite
-											<Badge
-												variant="secondary"
-												className="ml-1.5 h-4 px-1 text-[10px]"
-											>
-												{activeMembers.length}
-											</Badge>
-										</TabsTrigger>
-									</TabsList>
-								</Tabs>
-							</div>
-						</CardHeader>
-						<div className="overflow-x-auto">
-							<table className="w-full text-sm border-collapse">
-								<thead>
-									<tr className="bg-muted/50 border-b border-border">
-										<th className="px-3 py-2 text-left font-semibold text-xs text-muted-foreground w-[180px]">
-											Nama & Jabatan
-										</th>
-										<th className="px-2 py-2 text-center font-semibold text-xs text-muted-foreground min-w-[72px]">
-											TTA
-										</th>
-										<th className="px-2 py-2 text-center font-semibold text-xs text-muted-foreground min-w-[72px]">
-											Hazard
-										</th>
-										<th className="px-2 py-2 text-center font-semibold text-xs text-muted-foreground min-w-[72px]">
-											Inspeksi
-										</th>
-										<th className="px-2 py-2 text-center font-semibold text-xs text-muted-foreground min-w-[72px]">
-											Observasi
-										</th>
-										<th className="px-2 py-2 text-left font-semibold text-xs text-muted-foreground">
-											OPK Sub-type
-										</th>
-										<th className="px-3 py-2 text-center font-semibold text-xs text-muted-foreground w-[80px]">
-											Overall
-										</th>
-									</tr>
-								</thead>
-								<tbody>
-									{filteredTableMembers.map((m) => {
-										const isLeave = m.isOnLeave;
-										const rowBg = isLeave
-											? "opacity-50 bg-muted/20"
-											: m.overallPct >= 100
-												? "bg-emerald-500/5"
-												: m.overallPct > 0
-													? "bg-amber-500/5"
-													: "bg-rose-500/5";
-
-										return (
-											<tr
-												key={m.nik}
-												className={`border-b border-border transition-colors ${rowBg}`}
-											>
-												{/* Name cell */}
-												<td className="px-3 py-2">
-													<div className="flex flex-col gap-0.5">
-														<div className="flex items-center gap-1.5 flex-wrap">
-															<span className="font-medium text-sm leading-tight">
-																{m.name}
-															</span>
-															{isLeave && (
-																<Badge
-																	variant="outline"
-																	className="text-[9px] py-0 px-1 border-amber-400 text-amber-600 gap-0.5 h-4"
-																>
-																	<PlaneTakeoff className="h-2 w-2" />
-																	CUTI
-																</Badge>
-															)}
-															{m.isPjo && (
-																<Badge
-																	variant="outline"
-																	className="text-[9px] py-0 px-1 h-4 border-primary/50 text-primary"
-																>
-																	PJO
-																</Badge>
-															)}
-															{m.isHse && !m.isPjo && (
-																<Badge
-																	variant="outline"
-																	className="text-[9px] py-0 px-1 h-4 border-blue-400 text-blue-600"
-																>
-																	HSE
-																</Badge>
-															)}
-														</div>
-														<span className="text-[10px] text-muted-foreground">
-															{m.jabatan}
-														</span>
-													</div>
-												</td>
-
-												{isLeave ? (
-													<>
-														{[0, 1, 2, 3].map((i) => (
-															<td
-																key={i}
-																className="px-2 py-1.5 text-center text-muted-foreground/30 text-xs"
-															>
-																—
-															</td>
-														))}
-														<td className="px-2 py-1.5 text-center text-muted-foreground/30 text-xs">
-															—
-														</td>
-														<td className="px-3 py-1.5 text-center text-muted-foreground/30 text-xs">
-															—
-														</td>
-													</>
-												) : (
-													<>
-														<ProgressCell {...m.tta} />
-														<ProgressCell {...m.hazard} />
-														<ProgressCell {...m.inspeksi} />
-														<ProgressCell {...m.observasi} />
-														<OpkSubtypeCell member={m} />
-														<td className="px-3 py-1.5 text-center">
-															<span
-																className={`text-sm font-bold ${pctColor(m.overallPct)}`}
-															>
-																{m.overallPct}%
-															</span>
-														</td>
-													</>
-												)}
-											</tr>
-										);
-									})}
-
-									{filteredTableMembers.length === 0 && (
-										<tr>
-											<td
-												colSpan={7}
-												className="px-3 py-8 text-center text-muted-foreground text-sm"
-											>
-												Belum ada data untuk minggu ini
-											</td>
-										</tr>
-									)}
-								</tbody>
-							</table>
-						</div>
-					</Card>
-				</>
-			) : (
-				<div className="flex items-center justify-center py-24 text-muted-foreground text-sm">
-					Pilih minggu untuk melihat data
-				</div>
-			)}
-		</div>
+				)}
+			</div>
+		</main>
 	);
 }
