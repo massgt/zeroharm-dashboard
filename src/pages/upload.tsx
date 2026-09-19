@@ -15,6 +15,16 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -28,6 +38,7 @@ import {
 	CheckCircle2,
 	Loader2,
 	AlertCircle,
+	Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,6 +52,12 @@ export default function UploadData() {
 	const [isDragging, setIsDragging] = useState(false);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [uploadToDelete, setUploadToDelete] = useState<{
+		id: number;
+		filename: string;
+	} | null>(null);
+	const [deletingUploadId, setDeletingUploadId] = useState<number | null>(null);
 
 	const { data: uploads, isLoading: isLoadingUploads } = useListUploads({
 		query: { queryKey: getListUploadsQueryKey() },
@@ -88,7 +105,7 @@ export default function UploadData() {
 			const formData = new FormData();
 			formData.append("file", selectedFile);
 
-			const response = await fetch("http://localhost:3001/api/upload", {
+			const response = await fetch("/api/upload", {
 				method: "POST",
 				body: formData,
 			});
@@ -118,6 +135,67 @@ export default function UploadData() {
 			});
 		} finally {
 			setIsUploading(false);
+		}
+	};
+
+	const openDeleteDialog = (uploadId: number, filename: string) => {
+		setUploadToDelete({
+			id: uploadId,
+			filename,
+		});
+		setDeleteDialogOpen(true);
+	};
+
+	const handleDeleteUpload = async () => {
+		if (!uploadToDelete) return;
+
+		const { id: uploadId, filename } = uploadToDelete;
+
+		setDeletingUploadId(uploadId);
+
+		try {
+			const response = await fetch(`/api/uploads/${uploadId}`, {
+				method: "DELETE",
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || "Gagal menghapus data upload");
+			}
+
+			toast({
+				title: "Data Berhasil Dihapus",
+				description: `Upload "${filename}" dan data terkait telah dihapus.`,
+			});
+
+			queryClient.invalidateQueries({
+				queryKey: getListUploadsQueryKey(),
+			});
+
+			queryClient.invalidateQueries({
+				queryKey: getListWeeksQueryKey(),
+			});
+
+			queryClient.invalidateQueries({
+				queryKey: getGetDashboardQueryKey(),
+			});
+
+			setDeleteDialogOpen(false);
+			setUploadToDelete(null);
+		} catch (error) {
+			console.error("Delete upload error:", error);
+
+			toast({
+				title: "Gagal Menghapus",
+				description:
+					error instanceof Error
+						? error.message
+						: "Terjadi kesalahan saat menghapus data upload.",
+				variant: "destructive",
+			});
+		} finally {
+			setDeletingUploadId(null);
 		}
 	};
 
@@ -186,7 +264,7 @@ export default function UploadData() {
 							) : (
 								<>
 									<Upload className="mr-2 h-4 w-4" />
-									Proses File
+									Upload
 								</>
 							)}
 						</Button>
@@ -216,6 +294,7 @@ export default function UploadData() {
 									<TableHead>Tanggal Upload</TableHead>
 									<TableHead>Minggu Ditemukan</TableHead>
 									<TableHead className="text-right">Baris Diproses</TableHead>
+									<TableHead className="w-[60px]"></TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -248,6 +327,25 @@ export default function UploadData() {
 										<TableCell className="text-right">
 											{upload.rowsProcessed.toLocaleString()}
 										</TableCell>
+
+										<TableCell className="text-right">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="text-destructive hover:text-destructive hover:bg-destructive/10"
+												disabled={deletingUploadId === upload.id}
+												onClick={() =>
+													openDeleteDialog(upload.id, upload.filename)
+												}
+												title="Hapus data upload"
+											>
+												{deletingUploadId === upload.id ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<Trash2 className="h-4 w-4" />
+												)}
+											</Button>
+										</TableCell>
 									</TableRow>
 								))}
 							</TableBody>
@@ -260,6 +358,66 @@ export default function UploadData() {
 					)}
 				</CardContent>
 			</Card>
+			<AlertDialog
+				open={deleteDialogOpen}
+				onOpenChange={(open) => {
+					if (deletingUploadId === null) {
+						setDeleteDialogOpen(open);
+
+						if (!open) {
+							setUploadToDelete(null);
+						}
+					}
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Hapus data upload?</AlertDialogTitle>
+
+						<AlertDialogDescription>
+							Apakah Anda yakin ingin menghapus upload{" "}
+							<strong className="text-foreground">
+								{uploadToDelete?.filename}
+							</strong>
+							?
+							<br />
+							<br />
+							Semua data SAP yang berasal dari upload ini juga akan dihapus dari
+							dashboard.
+							<br />
+							<br />
+							File asli di Google Drive tidak akan dihapus.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={deletingUploadId !== null}>
+							Batal
+						</AlertDialogCancel>
+
+						<AlertDialogAction
+							onClick={(e) => {
+								e.preventDefault();
+								handleDeleteUpload();
+							}}
+							disabled={deletingUploadId !== null}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{deletingUploadId !== null ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Menghapus...
+								</>
+							) : (
+								<>
+									<Trash2 className="mr-2 h-4 w-4" />
+									Hapus Data
+								</>
+							)}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

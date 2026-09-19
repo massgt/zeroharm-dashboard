@@ -7,33 +7,37 @@ import Dashboard from "@/pages/dashboard";
 import UploadData from "@/pages/upload";
 import Members from "@/pages/members";
 import NotFound from "@/pages/not-found";
+import Summary from "@/pages/summary";
+import SafetyCampaign from "@/pages/safety-campaign";
 
 const queryClient = new QueryClient();
 
 function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/upload" component={UploadData} />
-      <Route path="/members" component={Members} />
-      <Route component={NotFound} />
-    </Switch>
-  );
+	return (
+		<Switch>
+			<Route path="/" component={Dashboard} />
+			<Route path="/upload" component={UploadData} />
+			<Route path="/members" component={Members} />
+			<Route path="/summary" component={Summary} />
+			<Route path="/safety-campaign" component={SafetyCampaign} />
+			<Route component={NotFound} />
+		</Switch>
+	);
 }
 
 function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Layout>
-            <Router />
-          </Layout>
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
+	return (
+		<QueryClientProvider client={queryClient}>
+			<TooltipProvider>
+				<WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+					<Layout>
+						<Router />
+					</Layout>
+				</WouterRouter>
+				<Toaster />
+			</TooltipProvider>
+		</QueryClientProvider>
+	);
 }
 
 export default App;

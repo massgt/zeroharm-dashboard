@@ -4,6 +4,7 @@ import {
 	useGetDashboard,
 	getListWeeksQueryKey,
 	getGetDashboardQueryKey,
+	useSafetyCampaigns,
 } from "@/api-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +27,9 @@ import {
 	PlaneTakeoff,
 	CalendarClock,
 	Clock,
+	Megaphone,
+	ChevronLeft,
+	ChevronRight,
 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -626,6 +630,252 @@ function InspectionTimeBarShape(props: any) {
 	);
 }
 
+// ── Safety Campaign Dashboard Carousel ────────────────────────────────────────
+function SafetyCampaignDashboard({
+	week,
+	year,
+}: {
+	week: string;
+	year: number;
+}) {
+	const { data: response, isLoading } = useSafetyCampaigns();
+
+	const campaigns = response?.data ?? [];
+
+	const campaign = campaigns.find(
+		(item) => item.week === Number(week.replace("W", "")) && item.year === year,
+	);
+
+	const images = campaign?.images ?? [];
+
+	const [currentIndex, setCurrentIndex] = useState(0);
+
+	// Reset ke poster pertama ketika campaign/week berubah
+	useEffect(() => {
+		setCurrentIndex(0);
+	}, [campaign?.id]);
+
+	// Carousel otomatis setiap 5 detik
+	useEffect(() => {
+		if (images.length <= 1) return;
+
+		const interval = window.setInterval(() => {
+			setCurrentIndex((prev) => (prev + 1) % images.length);
+		}, 5000);
+
+		return () => window.clearInterval(interval);
+	}, [images.length]);
+
+	if (isLoading) {
+		return <Skeleton className="h-[420px] w-full rounded-2xl" />;
+	}
+
+	if (!campaign) {
+		return (
+			<Card className="overflow-hidden border-dashed">
+				<CardContent className="flex min-h-[220px] items-center justify-center">
+					<div className="text-center">
+						<div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+							<Megaphone className="h-6 w-6 text-muted-foreground" />
+						</div>
+
+						<h3 className="font-semibold text-foreground">
+							Belum Ada Safety Campaign
+						</h3>
+
+						<p className="mt-1 text-sm text-muted-foreground">
+							Belum ada campaign untuk WEEK {week.replace("W", "")} • {year}
+						</p>
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	if (images.length === 0) {
+		return (
+			<Card className="overflow-hidden">
+				<CardHeader className="border-b">
+					<div className="flex items-center gap-2">
+						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+							<Megaphone className="h-4 w-4 text-primary" />
+						</div>
+
+						<div>
+							<CardTitle className="text-sm font-semibold">
+								Safety Campaign
+							</CardTitle>
+
+							<p className="text-xs text-muted-foreground">
+								WEEK {campaign.week} • {campaign.year}
+							</p>
+						</div>
+					</div>
+				</CardHeader>
+
+				<CardContent className="flex min-h-[220px] items-center justify-center">
+					<p className="text-sm text-muted-foreground">
+						Campaign belum memiliki poster.
+					</p>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	const currentImage = images[currentIndex];
+
+	const goPrevious = () => {
+		setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+	};
+
+	const goNext = () => {
+		setCurrentIndex((prev) => (prev + 1) % images.length);
+	};
+
+	return (
+		<Card className="overflow-hidden">
+			{/* Header */}
+			<CardHeader className="border-b pb-4">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+					<div className="flex items-start gap-3">
+						<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+							<Megaphone className="h-5 w-5 text-primary" />
+						</div>
+
+						<div>
+							<div className="flex flex-wrap items-center gap-2">
+								<CardTitle className="text-base font-semibold">
+									Safety Campaign
+								</CardTitle>
+
+								<Badge variant="outline">
+									WEEK {campaign.week} • {campaign.year}
+								</Badge>
+
+								{campaign.isActive && (
+									<Badge className="bg-emerald-500 text-white hover:bg-emerald-500">
+										AKTIF
+									</Badge>
+								)}
+							</div>
+
+							<p className="mt-1 text-sm font-semibold text-foreground">
+								{campaign.title}
+							</p>
+
+							{campaign.highlight && (
+								<p className="mt-1 text-xs text-muted-foreground">
+									{campaign.highlight}
+								</p>
+							)}
+						</div>
+					</div>
+
+					<div className="shrink-0 text-xs text-muted-foreground">
+						{currentIndex + 1} / {images.length} poster
+					</div>
+				</div>
+			</CardHeader>
+
+			{/* Poster */}
+			{/* Poster */}
+			<CardContent className="p-4 sm:p-6">
+				<div className="relative overflow-hidden rounded-xl bg-muted/30">
+					{/* Carousel Track */}
+					<div
+						className="flex transition-transform duration-700 ease-in-out"
+						style={{
+							transform: `translateX(-${currentIndex * 100}%)`,
+						}}
+					>
+						{images.map((image, index) => (
+							<div
+								key={image.id}
+								className="flex w-full shrink-0 items-center justify-center"
+							>
+								<img
+									src={image.filePath}
+									alt={`${campaign.title} - Poster ${index + 1}`}
+									className="max-h-[620px] w-auto max-w-full rounded-xl object-contain"
+								/>
+							</div>
+						))}
+					</div>
+
+					{/* Previous */}
+					{images.length > 1 && (
+						<Button
+							type="button"
+							variant="secondary"
+							size="icon"
+							onClick={goPrevious}
+							className="
+					absolute left-3 top-1/2
+					h-9 w-9
+					-translate-y-1/2
+					rounded-full
+					bg-background/90
+					shadow-md
+					backdrop-blur
+					transition-all duration-200
+					hover:scale-105
+					hover:bg-background
+				"
+							aria-label="Poster sebelumnya"
+						>
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+					)}
+
+					{/* Next */}
+					{images.length > 1 && (
+						<Button
+							type="button"
+							variant="secondary"
+							size="icon"
+							onClick={goNext}
+							className="
+					absolute right-3 top-1/2
+					h-9 w-9
+					-translate-y-1/2
+					rounded-full
+					bg-background/90
+					shadow-md
+					backdrop-blur
+					transition-all duration-200
+					hover:scale-105
+					hover:bg-background
+				"
+							aria-label="Poster berikutnya"
+						>
+							<ChevronRight className="h-5 w-5" />
+						</Button>
+					)}
+				</div>
+
+				{/* Indicator */}
+				{images.length > 1 && (
+					<div className="mt-4 flex items-center justify-center gap-1.5">
+						{images.map((image, index) => (
+							<button
+								key={image.id}
+								type="button"
+								onClick={() => setCurrentIndex(index)}
+								className={`h-2 rounded-full transition-all duration-300 ${
+									index === currentIndex
+										? "w-6 bg-primary"
+										: "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+								}`}
+								aria-label={`Tampilkan poster ${index + 1}`}
+							/>
+						))}
+					</div>
+				)}
+			</CardContent>
+		</Card>
+	);
+}
+
 // ── Main Dashboard ─────────────────────────────────────────────────────────────
 export default function Dashboard() {
 	const dashboardRef = useRef<HTMLDivElement>(null);
@@ -1073,6 +1323,12 @@ export default function Dashboard() {
 								)}
 							</div>
 						)}
+
+						{/* Safety Campaign */}
+						<SafetyCampaignDashboard
+							week={selectedWeek}
+							year={selectedWeekData?.year ?? new Date().getFullYear()}
+						/>
 
 						{/* Charts */}
 						<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

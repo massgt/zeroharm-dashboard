@@ -7,41 +7,23 @@ import {
 	Search,
 	Bell,
 	Settings,
-	Camera,
+	FileBarChart,
+	Megaphone,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import CompanyLogo from "../assets/LogoMVM.png";
-import * as htmlToImage from "html-to-image";
+import userLogo from "@/assets/user.png";
 
 export function Layout({ children }: { children: React.ReactNode }) {
 	const [location] = useLocation();
-
-	const handleCapture = async () => {
-		const dashboardElement = document.getElementById("dashboard-capture");
-		console.log("ELEMENT:", dashboardElement);
-
-		if (!dashboardElement) return;
-
-		try {
-			const dataUrl = await htmlToImage.toPng(dashboardElement, {
-				cacheBust: true,
-				pixelRatio: 2,
-			});
-
-			const link = document.createElement("a");
-			link.download = `dashboard-${Date.now()}.png`;
-			link.href = dataUrl;
-			link.click();
-		} catch (err) {
-			console.error("Capture error:", err);
-		}
-	};
 
 	const navItems = [
 		{ href: "/", icon: Activity, label: "Dashboard" },
 		{ href: "/upload", icon: Upload, label: "Upload Data" },
 		{ href: "/members", icon: Users, label: "Kelola Anggota" },
+		{ href: "/safety-campaign", icon: Megaphone, label: "Safety Campaign" },
+		{ href: "/summary", icon: FileBarChart, label: "Summary" },
 	];
 
 	return (
@@ -89,14 +71,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 				<div className="p-4 border-t border-sidebar-border pb-1">
 					<div className="flex items-center cursor-pointer hover:bg-sidebar-accent p-2 rounded-md transition-colors">
 						<Avatar className="h-8 w-8 bg-sidebar-accent border border-sidebar-border mr-3">
-							<AvatarFallback className="text-sidebar-foreground">
+							{/* <AvatarFallback className="text-sidebar-foreground">
 								JD
-							</AvatarFallback>
+							</AvatarFallback> */}
+							<img src={userLogo} />
 						</Avatar>
 						<div className="flex-1 overflow-hidden">
 							<div className="text-sm font-medium truncate">John Doe</div>
 							<div className="text-xs text-sidebar-foreground/60 truncate">
-								HSE Officer
+								HSE Manager
 							</div>
 						</div>
 					</div>
@@ -125,19 +108,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 					</div>
 
 					<div className="flex items-center gap-4">
-						<Button
-							variant="ghost"
-							size="icon"
-							className="text-muted-foreground"
-							// onClick={handleCapture}
-							onClick={() => {
-								console.log("CAPTURE CLICK");
-								handleCapture();
-							}}
-							title="Capture Dashboard"
-						>
-							<Camera className="h-5 w-5" />
-						</Button>
 						<Button
 							variant="ghost"
 							size="icon"
