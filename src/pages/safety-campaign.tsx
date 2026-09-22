@@ -1175,6 +1175,7 @@ function EditCampaignDialog({
 					files,
 				});
 			}
+			console.log("[SafetyCampaign] SAVE SUCCESS - closing dialog");
 
 			toast({
 				title: "Berhasil",
