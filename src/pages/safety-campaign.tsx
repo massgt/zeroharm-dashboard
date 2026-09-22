@@ -1101,6 +1101,7 @@ function EditCampaignDialog({
 	const updateCampaign = useUpdateSafetyCampaign();
 	const uploadImages = useUploadSafetyCampaignImages();
 	const deleteImage = useDeleteSafetyCampaignImage();
+	const { toast } = useToast();
 
 	const [week, setWeek] = useState("");
 	const [year, setYear] = useState("");
@@ -1175,7 +1176,6 @@ function EditCampaignDialog({
 					files,
 				});
 			}
-			console.log("[SafetyCampaign] SAVE SUCCESS - closing dialog");
 
 			toast({
 				title: "Berhasil",
