@@ -137,6 +137,7 @@ export default function UploadData() {
 		const CHUNK_SIZE = 20 * 1024 * 1024; // 20 MB
 		const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
 		const sessionId = crypto.randomUUID();
+		const apiUrl = import.meta.env.VITE_API_URL || "";
 
 		setIsUploading(true);
 
@@ -146,16 +147,19 @@ export default function UploadData() {
 				const end = Math.min(start + CHUNK_SIZE, selectedFile.size);
 				const chunk = selectedFile.slice(start, end);
 
-				const urlResponse = await fetch("/api/upload/excel-chunk-url", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
+				const urlResponse = await fetch(
+					`${apiUrl}/api/upload/excel-chunk-url`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							sessionId,
+							chunkIndex: index,
+						}),
 					},
-					body: JSON.stringify({
-						sessionId,
-						chunkIndex: index,
-					}),
-				});
+				);
 
 				if (!urlResponse.ok) {
 					throw new Error(
@@ -183,17 +187,20 @@ export default function UploadData() {
 			}
 
 			// 3. Kirim daftar chunk ke backend untuk diproses
-			const processResponse = await fetch("/api/upload/excel-chunked", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+			const processResponse = await fetch(
+				`${apiUrl}/api/upload/excel-chunked`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						filename: selectedFile.name,
+						sessionId,
+						totalChunks,
+					}),
 				},
-				body: JSON.stringify({
-					filename: selectedFile.name,
-					sessionId,
-					totalChunks,
-				}),
-			});
+			);
 
 			if (!processResponse.ok) {
 				const errorText = await processResponse.text();
