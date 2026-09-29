@@ -39,6 +39,11 @@ import {
 	Loader2,
 	AlertCircle,
 	Trash2,
+	Link2,
+	CloudDownload,
+	ChevronLeft,
+	ChevronRight,
+	Cloud,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -52,6 +57,15 @@ export default function UploadData() {
 	const [isDragging, setIsDragging] = useState(false);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
+	const [googleSheetUrl, setGoogleSheetUrl] = useState("");
+	const [isImportingGoogle, setIsImportingGoogle] = useState(false);
+	const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+	const [successTitle, setSuccessTitle] = useState("");
+	const [successDescription, setSuccessDescription] = useState("");
+
+	const [currentPage, setCurrentPage] = useState(1);
+
+	const ITEMS_PER_PAGE = 10;
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [uploadToDelete, setUploadToDelete] = useState<{
 		id: number;
@@ -62,6 +76,27 @@ export default function UploadData() {
 	const { data: uploads, isLoading: isLoadingUploads } = useListUploads({
 		query: { queryKey: getListUploadsQueryKey() },
 	});
+
+	type UploadHistoryItem = NonNullable<typeof uploads>[number] & {
+		sourceType?: "manual" | "google_sheet";
+	};
+
+	const uploadsWithSource = (uploads ?? []) as UploadHistoryItem[];
+
+	const sortedUploads = [...uploadsWithSource].sort(
+		(a, b) =>
+			new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+	);
+
+	const totalPages = Math.max(
+		1,
+		Math.ceil(sortedUploads.length / ITEMS_PER_PAGE),
+	);
+
+	const paginatedUploads = sortedUploads.slice(
+		(currentPage - 1) * ITEMS_PER_PAGE,
+		currentPage * ITEMS_PER_PAGE,
+	);
 
 	const handleDragOver = (e: React.DragEvent) => {
 		e.preventDefault();
@@ -99,42 +134,178 @@ export default function UploadData() {
 	const handleUpload = async () => {
 		if (!selectedFile) return;
 
+		const CHUNK_SIZE = 20 * 1024 * 1024; // 20 MB
+		const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
+		const sessionId = crypto.randomUUID();
+
 		setIsUploading(true);
 
 		try {
-			const formData = new FormData();
-			formData.append("file", selectedFile);
+			for (let index = 0; index < totalChunks; index++) {
+				const start = index * CHUNK_SIZE;
+				const end = Math.min(start + CHUNK_SIZE, selectedFile.size);
+				const chunk = selectedFile.slice(start, end);
 
-			const response = await fetch("/api/upload", {
-				method: "POST",
-				body: formData,
-			});
+				const urlResponse = await fetch("/api/upload/excel-chunk-url", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						sessionId,
+						chunkIndex: index,
+					}),
+				});
 
-			if (!response.ok) {
-				throw new Error("Upload gagal");
+				if (!urlResponse.ok) {
+					throw new Error(
+						`Gagal mendapatkan upload URL untuk chunk ${index + 1}`,
+					);
+				}
+
+				const urlResult = await urlResponse.json();
+
+				// 2. Upload chunk langsung ke Supabase Storage
+				const uploadResponse = await fetch(urlResult.signedUrl, {
+					method: "PUT",
+					headers: {
+						"Content-Type":
+							"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+					},
+					body: chunk,
+				});
+
+				if (!uploadResponse.ok) {
+					throw new Error(
+						`Gagal mengupload chunk ${index + 1} dari ${totalChunks}`,
+					);
+				}
 			}
 
-			const result = await response.json();
-
-			toast({
-				title: "Upload Berhasil",
-				description: `Memproses ${result.rowsProcessed} baris. Ditemukan data untuk ${result.weeksFound.length} minggu.`,
+			// 3. Kirim daftar chunk ke backend untuk diproses
+			const processResponse = await fetch("/api/upload/excel-chunked", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					filename: selectedFile.name,
+					sessionId,
+					totalChunks,
+				}),
 			});
 
-			setSelectedFile(null);
-			if (fileInputRef.current) fileInputRef.current.value = "";
+			if (!processResponse.ok) {
+				const errorText = await processResponse.text();
+				throw new Error(errorText || "Gagal memproses file Excel");
+			}
 
-			queryClient.invalidateQueries({ queryKey: getListUploadsQueryKey() });
-			queryClient.invalidateQueries({ queryKey: getListWeeksQueryKey() });
-			queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+			const result = await processResponse.json();
+
+			setSuccessTitle("Upload Berhasil");
+			setSuccessDescription(
+				`Data Excel berhasil diproses. ${result.rowsProcessed.toLocaleString()} baris diproses dan ditemukan data untuk ${result.weeksFound.length} minggu.`,
+			);
+
+			setSuccessDialogOpen(true);
+			setCurrentPage(1);
+			setSelectedFile(null);
+
+			if (fileInputRef.current) {
+				fileInputRef.current.value = "";
+			}
+
+			queryClient.invalidateQueries({
+				queryKey: getListUploadsQueryKey(),
+			});
+
+			queryClient.invalidateQueries({
+				queryKey: getListWeeksQueryKey(),
+			});
+
+			queryClient.invalidateQueries({
+				queryKey: getGetDashboardQueryKey(),
+			});
 		} catch (error) {
+			console.error("Upload Excel gagal:", error);
+
 			toast({
 				title: "Upload Gagal",
-				description: "Terjadi kesalahan saat mengupload file.",
+				description:
+					error instanceof Error
+						? error.message
+						: "Terjadi kesalahan saat mengupload file.",
 				variant: "destructive",
 			});
 		} finally {
 			setIsUploading(false);
+		}
+	};
+
+	const handleGoogleImport = async () => {
+		if (!googleSheetUrl.trim()) {
+			toast({
+				title: "URL belum diisi",
+				description: "Masukkan URL Google Spreadsheet terlebih dahulu.",
+				variant: "destructive",
+			});
+			return;
+		}
+
+		setIsImportingGoogle(true);
+
+		try {
+			const apiUrl = import.meta.env.VITE_API_URL || "";
+
+			const response = await fetch(`${apiUrl}/api/upload/google-sheet`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					url: googleSheetUrl.trim(),
+				}),
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || "Import Google Sheet gagal");
+			}
+
+			setSuccessTitle("Import Google Sheet Berhasil");
+			setSuccessDescription(
+				`Data berhasil diimport dari Google Sheet. ${result.rowsProcessed.toLocaleString()} baris diproses dan ${result.minergoRows.toLocaleString()} data SAP ditemukan.`,
+			);
+			setSuccessDialogOpen(true);
+			setCurrentPage(1);
+
+			setGoogleSheetUrl("");
+
+			queryClient.invalidateQueries({
+				queryKey: getListUploadsQueryKey(),
+			});
+
+			queryClient.invalidateQueries({
+				queryKey: getListWeeksQueryKey(),
+			});
+
+			queryClient.invalidateQueries({
+				queryKey: getGetDashboardQueryKey(),
+			});
+		} catch (error) {
+			console.error("Google Sheet import error:", error);
+
+			toast({
+				title: "Import Google Sheet Gagal",
+				description:
+					error instanceof Error
+						? error.message
+						: "Terjadi kesalahan saat mengimport Google Sheet.",
+				variant: "destructive",
+			});
+		} finally {
+			setIsImportingGoogle(false);
 		}
 	};
 
@@ -183,6 +354,7 @@ export default function UploadData() {
 
 			setDeleteDialogOpen(false);
 			setUploadToDelete(null);
+			setCurrentPage(1);
 		} catch (error) {
 			console.error("Delete upload error:", error);
 
@@ -202,75 +374,184 @@ export default function UploadData() {
 	return (
 		<div className="space-y-6">
 			<div>
-				<h1 className="text-3xl font-bold tracking-tight">Upload Data Excel</h1>
-				<p className="text-muted-foreground mt-1">
-					Upload file raw data SAP mingguan dari sistem BIB
+				<h1 className="text-3xl font-bold tracking-tight">
+					Upload Raw Data Zero Harm 2.0
+				</h1>
+
+				<p className="mt-1 text-muted-foreground">
+					Import data Safety Accountability Program dari BIB
 				</p>
 			</div>
 
-			<Card>
-				<CardContent className="p-8">
-					<div
-						className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer ${isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"}`}
-						onDragOver={handleDragOver}
-						onDragLeave={handleDragLeave}
-						onDrop={handleDrop}
-						onClick={() => fileInputRef.current?.click()}
-					>
-						<input
-							type="file"
-							accept=".xlsx"
-							className="hidden"
-							ref={fileInputRef}
-							onChange={handleFileChange}
-						/>
-
-						<div className="flex flex-col items-center justify-center space-y-4">
-							<div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
-								<FileSpreadsheet className="h-8 w-8 text-primary" />
+			<div className="grid gap-4 lg:grid-cols-2">
+				{/* =========================
+	    UPLOAD EXCEL
+	========================= */}
+				<Card className="border-slate-200 shadow-sm">
+					<CardHeader className="pb-3">
+						<div className="flex items-center gap-3">
+							<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+								<FileSpreadsheet className="h-5 w-5 text-emerald-600" />
 							</div>
 
-							{selectedFile ? (
-								<div className="space-y-2">
-									<p className="text-lg font-medium">{selectedFile.name}</p>
-									<p className="text-sm text-muted-foreground">
-										{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-									</p>
-								</div>
-							) : (
-								<div className="space-y-2">
-									<p className="text-lg font-medium">
-										Klik untuk upload atau drag and drop
-									</p>
-									<p className="text-sm text-muted-foreground">
-										Hanya mendukung format .xlsx
-									</p>
-								</div>
-							)}
+							<div>
+								<CardTitle className="text-base">Upload File Excel</CardTitle>
+								<CardDescription className="mt-0.5 text-xs">
+									Upload raw data SAP dari BIB
+								</CardDescription>
+							</div>
 						</div>
-					</div>
+					</CardHeader>
 
-					<div className="mt-6 flex justify-end">
+					<CardContent>
+						<div
+							className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+								isDragging
+									? "border-primary bg-primary/5"
+									: "border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/30"
+							}`}
+							onDragOver={handleDragOver}
+							onDragLeave={handleDragLeave}
+							onDrop={handleDrop}
+							onClick={() => fileInputRef.current?.click()}
+						>
+							<input
+								type="file"
+								accept=".xlsx"
+								className="hidden"
+								ref={fileInputRef}
+								onChange={handleFileChange}
+							/>
+
+							<div className="flex flex-col items-center">
+								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+									<FileSpreadsheet className="h-6 w-6 text-emerald-600" />
+								</div>
+
+								{selectedFile ? (
+									<>
+										<p className="mt-3 max-w-full truncate px-4 text-sm font-semibold">
+											{selectedFile.name}
+										</p>
+
+										<p className="mt-1 text-xs text-muted-foreground">
+											{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+										</p>
+									</>
+								) : (
+									<>
+										<p className="mt-3 text-sm font-semibold">
+											Pilih file atau drag & drop
+										</p>
+
+										<p className="mt-1 text-xs text-muted-foreground">
+											Format yang didukung: .xlsx
+										</p>
+									</>
+								)}
+							</div>
+						</div>
+
 						<Button
 							onClick={handleUpload}
 							disabled={!selectedFile || isUploading}
-							size="lg"
+							className="mt-4 w-full"
 						>
 							{isUploading ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Mengupload...
+									Mengupload & memproses...
 								</>
 							) : (
 								<>
 									<Upload className="mr-2 h-4 w-4" />
-									Upload
+									Upload File Excel
 								</>
 							)}
 						</Button>
-					</div>
-				</CardContent>
-			</Card>
+
+						<div className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+							<span className="font-medium text-slate-700">Catatan:</span>{" "}
+							Gunakan metode Google Sheet untuk file berukuran besar.
+						</div>
+					</CardContent>
+				</Card>
+
+				{/* =========================
+	    GOOGLE SHEET
+	========================= */}
+				<Card className="border-slate-200 shadow-sm">
+					<CardHeader className="pb-3">
+						<div className="flex items-center gap-3">
+							<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+								<CloudDownload className="h-5 w-5 text-blue-600" />
+							</div>
+
+							<div>
+								<CardTitle className="text-base">Import Google Sheet</CardTitle>
+								<CardDescription className="mt-0.5 text-xs">
+									Import langsung dari Google Drive
+								</CardDescription>
+							</div>
+						</div>
+					</CardHeader>
+
+					<CardContent>
+						<div className="rounded-lg border border-dashed border-blue-300 bg-blue-50/40 p-6">
+							<div className="flex flex-col items-center text-center">
+								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
+									<Link2 className="h-6 w-6 text-blue-600" />
+								</div>
+
+								<p className="mt-3 text-sm font-semibold">
+									Masukkan URL Google Spreadsheet
+								</p>
+
+								<p className="mt-1 max-w-sm text-xs text-muted-foreground">
+									Data akan dibaca langsung dari Google Drive dan diproses oleh
+									server.
+								</p>
+							</div>
+
+							<div className="mt-5">
+								<input
+									type="url"
+									value={googleSheetUrl}
+									onChange={(e) => setGoogleSheetUrl(e.target.value)}
+									placeholder="https://docs.google.com/spreadsheets/d/..."
+									className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+									disabled={isImportingGoogle}
+								/>
+							</div>
+
+							<Button
+								onClick={handleGoogleImport}
+								disabled={!googleSheetUrl.trim() || isImportingGoogle}
+								className="mt-3 w-full"
+								variant="default"
+							>
+								{isImportingGoogle ? (
+									<>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										Mengimport & memproses...
+									</>
+								) : (
+									<>
+										<CloudDownload className="mr-2 h-4 w-4" />
+										Import Google Sheet
+									</>
+								)}
+							</Button>
+						</div>
+
+						<div className="mt-3 rounded-md bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+							<span className="font-semibold">File besar?</span> Gunakan Google
+							Sheet. File tidak perlu diupload melalui browser sehingga ukuran
+							file besar tetap dapat diproses.
+						</div>
+					</CardContent>
+				</Card>
+			</div>
 
 			<Card>
 				<CardHeader>
@@ -287,69 +568,168 @@ export default function UploadData() {
 							<div className="h-10 bg-muted/50 rounded animate-pulse" />
 						</div>
 					) : uploads && uploads.length > 0 ? (
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Nama File</TableHead>
-									<TableHead>Tanggal Upload</TableHead>
-									<TableHead>Minggu Ditemukan</TableHead>
-									<TableHead className="text-right">Baris Diproses</TableHead>
-									<TableHead className="w-[60px]"></TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{uploads.map((upload) => (
-									<TableRow key={upload.id}>
-										<TableCell className="font-medium">
-											<div className="flex items-center gap-2">
-												<FileSpreadsheet className="h-4 w-4 text-primary" />
-												{upload.filename}
-											</div>
-										</TableCell>
-										<TableCell>
-											{format(
-												new Date(upload.uploadedAt),
-												"dd MMM yyyy, HH:mm",
-											)}
-										</TableCell>
-										<TableCell>
-											<div className="flex flex-wrap gap-1">
-												{upload.weeksFound.map((week) => (
-													<span
-														key={week}
-														className="bg-muted px-2 py-0.5 rounded text-xs"
-													>
-														{week}
-													</span>
-												))}
-											</div>
-										</TableCell>
-										<TableCell className="text-right">
-											{upload.rowsProcessed.toLocaleString()}
-										</TableCell>
-
-										<TableCell className="text-right">
-											<Button
-												variant="ghost"
-												size="icon"
-												className="text-destructive hover:text-destructive hover:bg-destructive/10"
-												disabled={deletingUploadId === upload.id}
-												onClick={() =>
-													openDeleteDialog(upload.id, upload.filename)
-												}
-												title="Hapus data upload"
-											>
-												{deletingUploadId === upload.id ? (
-													<Loader2 className="h-4 w-4 animate-spin" />
-												) : (
-													<Trash2 className="h-4 w-4" />
-												)}
-											</Button>
-										</TableCell>
+						<div>
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead className="w-[60px]">No.</TableHead>
+										<TableHead>Nama File</TableHead>
+										<TableHead>Tanggal Upload</TableHead>
+										<TableHead>Minggu Ditemukan</TableHead>
+										<TableHead className="text-right">Baris Diproses</TableHead>
+										<TableHead className="w-[60px]"></TableHead>
 									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+								</TableHeader>
+								<TableBody>
+									{paginatedUploads.map((upload, index) => (
+										<TableRow key={upload.id}>
+											<TableCell className="text-muted-foreground">
+												{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+											</TableCell>
+
+											<TableCell className="font-medium">
+												<div className="flex items-center gap-2">
+													{upload.sourceType === "google_sheet" ? (
+														<Cloud className="h-4 w-4 text-blue-600" />
+													) : (
+														<FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+													)}
+
+													<span className="truncate">
+														{upload.sourceType === "google_sheet"
+															? "Google Sheet"
+															: upload.filename}
+													</span>
+												</div>
+											</TableCell>
+											<TableCell>
+												{format(
+													new Date(upload.uploadedAt),
+													"dd MMM yyyy, HH:mm",
+												)}
+											</TableCell>
+											<TableCell>
+												<div className="flex flex-wrap gap-1">
+													{upload.weeksFound.map((week) => (
+														<span
+															key={week}
+															className="bg-muted px-2 py-0.5 rounded text-xs"
+														>
+															{week}
+														</span>
+													))}
+												</div>
+											</TableCell>
+											<TableCell className="text-right">
+												{upload.rowsProcessed.toLocaleString()}
+											</TableCell>
+
+											<TableCell className="text-right">
+												<Button
+													variant="ghost"
+													size="icon"
+													className="text-destructive hover:text-destructive hover:bg-destructive/10"
+													disabled={deletingUploadId === upload.id}
+													onClick={() =>
+														openDeleteDialog(upload.id, upload.filename)
+													}
+													title="Hapus data upload"
+												>
+													{deletingUploadId === upload.id ? (
+														<Loader2 className="h-4 w-4 animate-spin" />
+													) : (
+														<Trash2 className="h-4 w-4" />
+													)}
+												</Button>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+							{totalPages > 1 && (
+								<div className="mt-4 flex items-center justify-between border-t pt-4">
+									<div className="text-xs text-muted-foreground">
+										Menampilkan{" "}
+										<span className="font-medium text-foreground">
+											{(currentPage - 1) * ITEMS_PER_PAGE + 1}
+										</span>
+										{" - "}
+										<span className="font-medium text-foreground">
+											{Math.min(
+												currentPage * ITEMS_PER_PAGE,
+												sortedUploads.length,
+											)}
+										</span>{" "}
+										dari{" "}
+										<span className="font-medium text-foreground">
+											{sortedUploads.length}
+										</span>{" "}
+										riwayat
+									</div>
+
+									<div className="flex items-center gap-1">
+										<Button
+											variant="outline"
+											size="sm"
+											disabled={currentPage === 1}
+											onClick={() =>
+												setCurrentPage((page) => Math.max(1, page - 1))
+											}
+										>
+											<ChevronLeft className="mr-1 h-4 w-4" />
+											Sebelumnya
+										</Button>
+
+										{Array.from({ length: totalPages }, (_, index) => index + 1)
+											.filter((page) => {
+												if (totalPages <= 5) return true;
+
+												return (
+													page === 1 ||
+													page === totalPages ||
+													Math.abs(page - currentPage) <= 1
+												);
+											})
+											.map((page, index, pages) => {
+												const previousPage = pages[index - 1];
+
+												return (
+													<div key={page} className="flex items-center">
+														{previousPage && page - previousPage > 1 && (
+															<span className="px-2 text-xs text-muted-foreground">
+																...
+															</span>
+														)}
+
+														<Button
+															variant={
+																currentPage === page ? "default" : "outline"
+															}
+															size="sm"
+															className="h-8 min-w-8 px-2"
+															onClick={() => setCurrentPage(page)}
+														>
+															{page}
+														</Button>
+													</div>
+												);
+											})}
+
+										<Button
+											variant="outline"
+											size="sm"
+											disabled={currentPage === totalPages}
+											onClick={() =>
+												setCurrentPage((page) => Math.min(totalPages, page + 1))
+											}
+										>
+											Berikutnya
+											<ChevronRight className="ml-1 h-4 w-4" />
+										</Button>
+									</div>
+								</div>
+							)}
+						</div>
 					) : (
 						<div className="text-center py-8 text-muted-foreground flex flex-col items-center">
 							<AlertCircle className="h-8 w-8 mb-2 opacity-50" />
@@ -370,6 +750,36 @@ export default function UploadData() {
 					}
 				}}
 			>
+				<AlertDialog
+					open={successDialogOpen}
+					onOpenChange={setSuccessDialogOpen}
+				>
+					<AlertDialogContent className="sm:max-w-md">
+						<AlertDialogHeader>
+							<div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+								<CheckCircle2 className="h-7 w-7 text-emerald-600" />
+							</div>
+
+							<AlertDialogTitle className="text-center">
+								{successTitle}
+							</AlertDialogTitle>
+
+							<AlertDialogDescription className="text-center">
+								{successDescription}
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+
+						<AlertDialogFooter>
+							<AlertDialogAction
+								onClick={() => setSuccessDialogOpen(false)}
+								className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+							>
+								Selesai
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Hapus data upload?</AlertDialogTitle>
