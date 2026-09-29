@@ -9,10 +9,10 @@ import type { MemberProgress } from "@/api-client";
 import { toPng } from "html-to-image";
 import {
 	AlertTriangle,
-	CalendarDays,
+	CalendarClock,
 	CheckCircle2,
 	CircleAlert,
-	Download,
+	Clock,
 	Info,
 	XCircle,
 } from "lucide-react";
@@ -28,7 +28,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import logoMVM from "@/assets/LogoMVM2.png";
 import logoCapture from "@/assets/capture.png";
-import { color } from "html2canvas/dist/types/css/types/color";
 
 type ComplianceItem = {
 	actual: number;
@@ -304,7 +303,7 @@ function MemberRow({
 				{index}
 			</td>
 
-			<td className="w-[185px] px-2 py-2 align-top">
+			<td className="w-[150px] px-2 py-2 align-top">
 				<div className="text-[11px] font-bold leading-tight text-slate-800">
 					{member.name}
 				</div>
@@ -322,23 +321,23 @@ function MemberRow({
 				)}
 			</td>
 
-			<td className="w-[70px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<Metric label="TTA" item={member.tta} />
 			</td>
 
-			<td className="w-[70px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<Metric label="HAZARD" item={member.hazard} />
 			</td>
 
-			<td className="w-[70px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<Metric label="INSPEKSI" item={member.inspeksi} />
 			</td>
 
-			<td className="w-[70px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<Metric label="OBSERVASI" item={member.observasi} />
 			</td>
 
-			<td className="min-w-[380px] px-2 py-2 align-top">
+			<td className="min-w-[480px] px-2 py-2 align-top">
 				{member.isPjo ? (
 					<div className="flex min-h-[60px] items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 text-[9px] text-slate-500">
 						<Info className="mr-1.5 h-3 w-3" />
@@ -353,7 +352,7 @@ function MemberRow({
 				)}
 			</td>
 
-			<td className="w-[75px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<div className="text-center">
 					<div className={`text-[16px] font-bold ${status.text}`}>
 						{member.overallPct}%
@@ -370,7 +369,7 @@ function MemberRow({
 				</div>
 			</td>
 
-			<td className="w-[155px] px-2 py-2 align-top">
+			<td className="w-[120px] px-1.5 py-2 align-top">
 				<div
 					className={`inline-flex rounded-md border px-1.5 py-0.5 text-[8px] font-bold ${status.bg} ${status.border} ${status.text}`}
 				>
@@ -402,6 +401,79 @@ function MemberRow({
 	);
 }
 
+function getWeekDueDate(weekStr: string, year: number): Date {
+	const weekNum = parseInt(weekStr.replace("W", ""), 10);
+
+	const jan4 = new Date(year, 0, 4);
+	const dayOfWeek = jan4.getDay();
+
+	const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+	const week1Monday = new Date(jan4);
+	week1Monday.setDate(jan4.getDate() + daysToMonday);
+
+	const targetMonday = new Date(week1Monday);
+	targetMonday.setDate(week1Monday.getDate() + (weekNum - 1) * 7);
+
+	const saturday = new Date(targetMonday);
+	saturday.setDate(targetMonday.getDate() + 5);
+
+	return saturday;
+}
+
+function formatDate(date: Date): string {
+	return date.toLocaleDateString("id-ID", {
+		weekday: "long",
+		day: "numeric",
+		month: "long",
+		year: "numeric",
+	});
+}
+
+function getDaysLabel(dueDate: Date): {
+	label: string;
+	urgent: boolean;
+	past: boolean;
+} {
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+
+	const due = new Date(dueDate);
+	due.setHours(0, 0, 0, 0);
+
+	const diff = Math.ceil((due.getTime() - today.getTime()) / 86400000);
+
+	if (diff < 0) {
+		return {
+			label: `Periode berakhir ${Math.abs(diff)} hari lalu`,
+			urgent: false,
+			past: true,
+		};
+	}
+
+	if (diff === 0) {
+		return {
+			label: "Deadline hari ini!",
+			urgent: true,
+			past: false,
+		};
+	}
+
+	if (diff === 1) {
+		return {
+			label: "Deadline besok",
+			urgent: true,
+			past: false,
+		};
+	}
+
+	return {
+		label: `${diff} hari lagi`,
+		urgent: diff <= 2,
+		past: false,
+	};
+}
+
 export default function Summary() {
 	const captureRef = useRef<HTMLDivElement>(null);
 
@@ -420,6 +492,12 @@ export default function Summary() {
 	}, [weeks, selectedWeek]);
 
 	const selectedWeekData = weeks?.find((w) => w.week === selectedWeek);
+
+	const dueDate = selectedWeekData
+		? getWeekDueDate(selectedWeekData.week, selectedWeekData.year)
+		: null;
+
+	const daysInfo = dueDate ? getDaysLabel(dueDate) : null;
 
 	const { data: dashboard, isLoading: loadingDashboard } = useGetDashboard(
 		{ week: selectedWeek },
@@ -462,17 +540,6 @@ export default function Summary() {
 						: 100,
 			};
 		});
-	}, [members]);
-
-	const missingOpkTotal = useMemo(() => {
-		return members.reduce((total, member) => {
-			return (
-				total +
-				getOpkItems(member).filter(
-					({ item }) => item && item.target > 0 && item.pct < 100,
-				).length
-			);
-		}, 0);
 	}, [members]);
 
 	const handleCapture = async () => {
@@ -606,15 +673,24 @@ export default function Summary() {
 						</div>
 					</div>
 
-					<div className="text-right">
-						<div className="text-[15px] font-bold text-slate-800">
+					<div className="flex flex-col items-end">
+						<div className="text-[15px] font-bold leading-tight text-slate-800">
 							{selectedWeekData?.label || selectedWeek}
 						</div>
 
-						<div className="mt-1 flex items-center justify-end gap-1 text-[9px] text-slate-500">
-							<CalendarDays className="h-3 w-3" />
-							Periode minggu aktif
-						</div>
+						{dueDate && daysInfo && (
+							<div
+								className={`mt-1 text-[9px] font-medium leading-tight border rounded-full px-1 py-1 ${
+									daysInfo.past
+										? "border-muted text-muted-foreground"
+										: daysInfo.urgent
+											? "border-rose-400 bg-rose-500/10 text-rose-600"
+											: "border-emerald-400 bg-emerald-500/10 text-emerald-600"
+								}`}
+							>
+								Deadline: {formatDate(dueDate)}
+							</div>
+						)}
 					</div>
 				</div>
 
@@ -692,7 +768,9 @@ export default function Summary() {
 				</div>
 
 				{/* Rekap indikator */}
-				<div className="mt-3 grid grid-cols-[1fr_1fr_1fr] gap-2">
+				{/* Rekap indikator */}
+				<div className="mt-3 grid grid-cols-[1fr_2fr] gap-2">
+					{/* REKAP INDIKATOR */}
 					<div className="rounded-lg border border-slate-200 px-3 py-2.5">
 						<div className="mb-2 text-[10px] font-bold text-slate-700">
 							REKAP INDIKATOR
@@ -724,33 +802,13 @@ export default function Summary() {
 						</div>
 					</div>
 
-					<div className="rounded-lg border border-slate-200 px-3 py-2.5">
-						<div className="text-[10px] font-bold text-slate-700">
-							STATUS OPK
-						</div>
-
-						<div className="mt-2 flex items-center gap-3">
-							<div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-50">
-								<AlertTriangle className="h-5 w-5 text-amber-500" />
-							</div>
-
-							<div>
-								<div className="text-[17px] font-bold text-amber-700">
-									{missingOpkTotal}
-								</div>
-								<div className="text-[8px] text-slate-500">
-									OPK belum achieve
-								</div>
-							</div>
-						</div>
-					</div>
-
+					{/* KESESUAIAN WAKTU PELAPORAN INSPEKSI */}
 					<div className="rounded-lg border border-slate-200 px-3 py-2.5">
 						<div className="text-[10px] font-bold text-slate-700">
 							KESESUAIAN WAKTU PELAPORAN INSPEKSI
 						</div>
 
-						<div className="mt-1.5 grid grid-cols-3 gap-x-3 text-[7px] text-slate-600">
+						{/* <div className="mt-1.5 grid grid-cols-3 gap-x-3 text-[7px] text-slate-600">
 							<div className="flex items-center gap-1">
 								<CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" />
 								<span>Hijau = target tercapai</span>
@@ -765,13 +823,9 @@ export default function Summary() {
 								<XCircle className="h-2.5 w-2.5 text-rose-600" />
 								<span>Merah = 0%</span>
 							</div>
-						</div>
+						</div> */}
 
-						<div className="mt-2 border-t border-slate-100 pt-1.5">
-							{/* <div className="mb-1 text-[8px] font-semibold text-slate-600">
-								KESESUAIAN WAKTU PELAPORAN INSPEKSI
-							</div> */}
-
+						<div className="mt-1 border-t border-slate-100 pt-1.5">
 							<div className="grid grid-cols-2 gap-x-4 gap-y-1">
 								{members.map((member) => (
 									<InspectionTimeRow key={member.nik} member={member} />
