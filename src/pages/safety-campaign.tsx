@@ -207,20 +207,22 @@ export default function SafetyCampaign() {
 
 function PageHeader({ onAdd }: { onAdd: () => void }) {
 	return (
-		<div className="flex items-start justify-between gap-4">
-			<div>
+		<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="min-w-0">
 				<div className="flex items-center gap-2">
-					<Megaphone className="h-7 w-7" />
+					<Megaphone className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" />
 
-					<h1 className="text-3xl font-bold tracking-tight">Safety Campaign</h1>
+					<h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+						Safety Campaign
+					</h1>
 				</div>
 
-				<p className="text-muted-foreground mt-1">
+				<p className="mt-1 text-sm sm:text-base text-muted-foreground">
 					Kelola campaign keselamatan mingguan.
 				</p>
 			</div>
 
-			<Button onClick={onAdd}>
+			<Button onClick={onAdd} className="w-full sm:w-auto shrink-0">
 				<Plus className="mr-2 h-4 w-4" />
 				Tambah Campaign
 			</Button>
@@ -254,8 +256,8 @@ function CampaignCard({
 	return (
 		<Card className="overflow-hidden">
 			<CardHeader className="pb-4">
-				<div className="flex flex-wrap items-start justify-between gap-4">
-					<div>
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+					<div className="min-w-0 flex-1">
 						<div className="flex items-center gap-2 flex-wrap">
 							<Badge variant="outline">
 								WEEK {campaign.week} • {campaign.year}
@@ -270,17 +272,19 @@ function CampaignCard({
 							)}
 						</div>
 
-						<CardTitle className="mt-3 text-2xl">{campaign.title}</CardTitle>
+						<CardTitle className="mt-3 break-words text-xl sm:text-2xl">
+							{campaign.title}
+						</CardTitle>
 
 						{campaign.highlight && (
-							<p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+							<p className="mt-2 max-w-3xl break-words text-sm text-muted-foreground">
 								{campaign.highlight}
 							</p>
 						)}
 
 						{(campaign.startDate || campaign.endDate) && (
-							<div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-								<CalendarDays className="h-4 w-4" />
+							<div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+								<CalendarDays className="h-4 w-4 shrink-0" />
 
 								<span>
 									{campaign.startDate ?? "-"} → {campaign.endDate ?? "-"}
@@ -288,9 +292,9 @@ function CampaignCard({
 							</div>
 						)}
 					</div>
-					<div className="flex flex-wrap items-center justify-between gap-9">
-						<div className="flex items-center gap-2 text-sm text-muted-foreground">
-							<ImageIcon className="h-4 w-4" />
+					<div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+						<div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+							<ImageIcon className="h-4 w-4 shrink-0" />
 							{images.length} poster
 						</div>
 						<DropdownMenu>
@@ -334,12 +338,12 @@ function CampaignCard({
 
 			<CardContent>
 				{images.length === 0 ? (
-					<div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
+					<div className="rounded-lg border border-dashed p-6 sm:p-10 text-center text-sm text-muted-foreground">
 						Belum ada poster untuk campaign ini.
 					</div>
 				) : (
 					<div className="space-y-4">
-						<div className="flex justify-center rounded-xl bg-muted/30 p-4">
+						<div className="flex w-full justify-center rounded-xl bg-muted/30 p-2 sm:p-4">
 							<img
 								src={currentImage.filePath}
 								alt={`${campaign.title} poster`}
@@ -348,13 +352,13 @@ function CampaignCard({
 						</div>
 
 						{images.length > 1 && (
-							<div className="flex justify-center gap-2">
+							<div className="flex max-w-full justify-start gap-2 overflow-x-auto px-1 pb-1 sm:justify-center">
 								{images.map((image, index) => (
 									<button
 										key={image.id}
 										type="button"
 										onClick={() => setActiveImage(index)}
-										className={`h-16 w-12 overflow-hidden rounded-md border-2 transition ${
+										className={`h-16 w-12 shrink-0 overflow-hidden rounded-md border-2 transition ${
 											index === activeImage
 												? "border-primary"
 												: "border-transparent opacity-60 hover:opacity-100"
@@ -491,11 +495,13 @@ function ManageCampaignImagesDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-4xl">
+			<DialogContent className="w-[calc(100%-1.5rem)] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
 				<DialogHeader>
-					<DialogTitle>Kelola Poster</DialogTitle>
+					<DialogTitle className="text-base sm:text-lg">
+						Kelola Poster
+					</DialogTitle>
 
-					<DialogDescription>
+					<DialogDescription className="text-xs sm:text-sm">
 						Kelola poster untuk campaign{" "}
 						<span className="font-semibold text-foreground">
 							{campaign?.title}
@@ -506,7 +512,7 @@ function ManageCampaignImagesDialog({
 				<div className="space-y-6">
 					{/* Existing Posters */}
 					<div>
-						<div className="mb-3 flex items-center justify-between">
+						<div className="mb-3 flex items-start justify-between gap-3">
 							<div>
 								<h3 className="font-semibold">Poster Campaign</h3>
 								<p className="text-sm text-muted-foreground">
@@ -515,6 +521,7 @@ function ManageCampaignImagesDialog({
 							</div>
 
 							<Badge
+								className="shrink-0"
 								variant={images.length >= 10 ? "destructive" : "secondary"}
 							>
 								{images.length}/10
@@ -532,7 +539,7 @@ function ManageCampaignImagesDialog({
 								</div>
 							</div>
 						) : (
-							<div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+							<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
 								{images.map((image, index) => (
 									<div
 										key={image.id}
@@ -553,17 +560,18 @@ function ManageCampaignImagesDialog({
 											onClick={() => handleDelete(image.id)}
 											disabled={deleteImage.isPending}
 											className="
-                        absolute right-2 top-2
-                        flex h-8 w-8 items-center justify-center
-                        rounded-full
-                        bg-destructive text-destructive-foreground
-                        opacity-0
-                        shadow-md
-                        transition-opacity
-                        group-hover:opacity-100
-                        disabled:pointer-events-none
-                        disabled:opacity-50
-                      "
+	absolute right-2 top-2
+	flex h-8 w-8 items-center justify-center
+	rounded-full
+	bg-destructive text-destructive-foreground
+	opacity-100
+	sm:opacity-0
+	sm:group-hover:opacity-100
+	shadow-md
+	transition-opacity
+	disabled:pointer-events-none
+	disabled:opacity-50
+"
 											title="Hapus poster"
 										>
 											<Trash2 className="h-4 w-4" />
@@ -601,7 +609,7 @@ function ManageCampaignImagesDialog({
 										{files.map((file) => (
 											<div
 												key={`${file.name}-${file.size}`}
-												className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm"
+												className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-muted px-3 py-2 text-sm"
 											>
 												<span className="truncate">{file.name}</span>
 
@@ -865,7 +873,7 @@ function CreateCampaignDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+			<DialogContent className="w-[calc(100%-1.5rem)] max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
 				<DialogHeader>
 					<DialogTitle>Tambah Safety Campaign</DialogTitle>
 
@@ -944,7 +952,7 @@ function CreateCampaignDialog({
 					</div>
 
 					{/* Dates */}
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<label
 								htmlFor="campaign-start-date"
@@ -979,7 +987,7 @@ function CreateCampaignDialog({
 					</div>
 
 					{/* Active */}
-					<div className="flex items-center justify-between rounded-lg border p-4">
+					<div className="flex items-center justify-between gap-4 rounded-lg border p-4">
 						<div>
 							<p className="text-sm font-medium">Status Campaign</p>
 
@@ -988,7 +996,11 @@ function CreateCampaignDialog({
 							</p>
 						</div>
 
-						<Switch checked={isActive} onCheckedChange={setIsActive} />
+						<Switch
+							checked={isActive}
+							onCheckedChange={setIsActive}
+							className="shrink-0"
+						/>
 					</div>
 
 					{/* Poster upload */}
@@ -1041,7 +1053,7 @@ function CreateCampaignDialog({
 										<button
 											type="button"
 											onClick={() => removeFile(index)}
-											className="absolute right-2 top-2 rounded-full bg-black/70 p-1.5 text-white opacity-0 transition group-hover:opacity-100"
+											className="absolute right-2 top-2 rounded-full bg-black/70 p-1.5 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100"
 											aria-label={`Hapus ${file.name}`}
 										>
 											<X className="h-4 w-4" />
@@ -1062,17 +1074,22 @@ function CreateCampaignDialog({
 						)}
 					</div>
 
-					<DialogFooter>
+					<DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:gap-2">
 						<Button
 							type="button"
 							variant="outline"
+							className="w-full sm:w-auto"
 							onClick={() => handleOpenChange(false)}
 							disabled={isSubmitting}
 						>
 							Batal
 						</Button>
 
-						<Button type="submit" disabled={isSubmitting}>
+						<Button
+							type="submit"
+							className="w-full sm:w-auto"
+							disabled={isSubmitting}
+						>
 							{isSubmitting ? (
 								"Memproses..."
 							) : (
@@ -1235,7 +1252,7 @@ function EditCampaignDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+			<DialogContent className="w-[calc(100%-1.5rem)] max-h-[90vh] overflow-y-auto p-4 sm:max-w-3xl sm:p-6">
 				<DialogHeader>
 					<DialogTitle>Edit Safety Campaign</DialogTitle>
 
@@ -1246,7 +1263,7 @@ function EditCampaignDialog({
 
 				<div className="grid gap-5">
 					{/* WEEK & YEAR */}
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="edit-week">Week</Label>
 
@@ -1298,7 +1315,7 @@ function EditCampaignDialog({
 					</div>
 
 					{/* DATE */}
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="edit-start-date">Tanggal Mulai</Label>
 
@@ -1323,8 +1340,8 @@ function EditCampaignDialog({
 					</div>
 
 					{/* ACTIVE */}
-					<div className="flex items-center justify-between rounded-lg border p-4">
-						<div>
+					<div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+						<div className="min-w-0">
 							<p className="font-medium">Campaign Aktif</p>
 
 							<p className="text-sm text-muted-foreground">
@@ -1332,7 +1349,11 @@ function EditCampaignDialog({
 							</p>
 						</div>
 
-						<Switch checked={isActive} onCheckedChange={setIsActive} />
+						<Switch
+							checked={isActive}
+							onCheckedChange={setIsActive}
+							className="shrink-0"
+						/>
 					</div>
 
 					{/* EXISTING POSTERS */}
@@ -1354,7 +1375,7 @@ function EditCampaignDialog({
 								Belum ada poster.
 							</div>
 						) : (
-							<div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+							<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
 								{campaign.images.map((image) => (
 									<div
 										key={image.id}
@@ -1370,7 +1391,7 @@ function EditCampaignDialog({
 											type="button"
 											size="icon"
 											variant="destructive"
-											className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100"
+											className="absolute right-2 top-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
 											onClick={() => handleDeleteImage(image.id)}
 											disabled={deleteImage.isPending}
 										>
@@ -1428,8 +1449,9 @@ function EditCampaignDialog({
 						)}
 					</div>
 				</div>
-				<DialogFooter>
+				<DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:gap-2">
 					<Button
+						className="w-full sm:w-auto"
 						type="button"
 						variant="outline"
 						onClick={() => onOpenChange(false)}
@@ -1439,6 +1461,7 @@ function EditCampaignDialog({
 
 					<Button
 						type="button"
+						className="w-full sm:w-auto"
 						onClick={handleSave}
 						disabled={
 							updateCampaign.isPending ||
@@ -1475,7 +1498,7 @@ function DeleteCampaignDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Hapus Safety Campaign?</DialogTitle>
 
@@ -1497,9 +1520,10 @@ function DeleteCampaignDialog({
 					</p>
 				</div>
 
-				<DialogFooter>
+				<DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:gap-2">
 					<Button
 						type="button"
+						className="w-full sm:w-auto"
 						variant="outline"
 						onClick={() => onOpenChange(false)}
 						disabled={isDeleting}
@@ -1508,6 +1532,7 @@ function DeleteCampaignDialog({
 					</Button>
 
 					<Button
+						className="w-full sm:w-auto"
 						type="button"
 						variant="destructive"
 						onClick={onConfirm}

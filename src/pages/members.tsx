@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
 	useListMembers,
 	useUpsertMember,
@@ -203,9 +203,44 @@ export default function Members() {
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
 
+	const [searchQuery, setSearchQuery] = useState("");
+	const [roleFilter, setRoleFilter] = useState<
+		"all" | "pjo" | "hse" | "pengawas"
+	>("all");
+	const [statusFilter, setStatusFilter] = useState<"all" | "active" | "leave">(
+		"all",
+	);
+
 	const { data: members, isLoading } = useListMembers({
 		query: { queryKey: getListMembersQueryKey() },
 	});
+	const filteredMembers = useMemo(() => {
+		if (!members) return [];
+
+		const query = searchQuery.trim().toLowerCase();
+
+		return members.filter((member) => {
+			const matchesSearch =
+				!query ||
+				member.name.toLowerCase().includes(query) ||
+				member.nik.toLowerCase().includes(query) ||
+				member.jabatan.toLowerCase().includes(query) ||
+				member.department.toLowerCase().includes(query);
+
+			const matchesRole =
+				roleFilter === "all" ||
+				(roleFilter === "pjo" && member.isPjo) ||
+				(roleFilter === "hse" && member.isHse) ||
+				(roleFilter === "pengawas" && !member.isPjo && !member.isHse);
+
+			const matchesStatus =
+				statusFilter === "all" ||
+				(statusFilter === "active" && !member.isOnLeave) ||
+				(statusFilter === "leave" && member.isOnLeave);
+
+			return matchesSearch && matchesRole && matchesStatus;
+		});
+	}, [members, searchQuery, roleFilter, statusFilter]);
 	const upsertMember = useUpsertMember();
 	const updateMember = useUpdateMember();
 	const deleteMember = useDeleteMember();
@@ -348,479 +383,740 @@ export default function Members() {
 	return (
 		<div className="space-y-6">
 			{/* Header */}
-			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-				<div>
-					<h1 className="text-3xl font-bold tracking-tight">Manajemen Tim</h1>
-					<p className="text-muted-foreground mt-1">
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+				<div className="min-w-0">
+					<h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+						Manajemen Tim
+					</h1>
+					<p className="mt-1 text-sm sm:text-base text-muted-foreground">
 						Kelola profil, target laporan, dan status cuti anggota tim
 					</p>
 				</div>
-				<Button onClick={handleAddNew} className="gap-2">
+
+				<Button
+					onClick={handleAddNew}
+					className="w-full gap-2 sm:w-auto shrink-0"
+				>
 					<Plus className="h-4 w-4" />
 					Tambah Anggota
 				</Button>
 			</div>
 
+			{/* Toolbar */}
+			<div className="w-full rounded-xl border bg-background shadow-sm p-4">
+				<div className="flex flex-col gap-4">
+					{/* SEARCH + ROLE */}
+					<div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+						<div className="flex-1">
+							<Input
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								placeholder="Cari nama, NIK, jabatan, atau departemen..."
+								className="h-10"
+							/>
+						</div>
+
+						<div className="flex flex-wrap gap-2">
+							<Button
+								variant={roleFilter === "all" ? "default" : "outline"}
+								onClick={() => setRoleFilter("all")}
+								className="h-10"
+							>
+								Semua Role
+							</Button>
+
+							<Button
+								variant={roleFilter === "pjo" ? "default" : "outline"}
+								onClick={() => setRoleFilter("pjo")}
+								className="h-10"
+							>
+								PJO
+							</Button>
+
+							<Button
+								variant={roleFilter === "hse" ? "default" : "outline"}
+								onClick={() => setRoleFilter("hse")}
+								className="h-10"
+							>
+								HSE
+							</Button>
+
+							<Button
+								variant={roleFilter === "pengawas" ? "default" : "outline"}
+								onClick={() => setRoleFilter("pengawas")}
+								className="h-10"
+							>
+								Pengawas
+							</Button>
+						</div>
+					</div>
+
+					{/* STATUS + RESULT */}
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex items-center gap-2">
+							<span className="text-sm font-medium text-muted-foreground">
+								Status:
+							</span>
+
+							<Button
+								variant={statusFilter === "all" ? "secondary" : "ghost"}
+								size="sm"
+								onClick={() => setStatusFilter("all")}
+							>
+								Semua
+							</Button>
+
+							<Button
+								variant={statusFilter === "active" ? "secondary" : "ghost"}
+								size="sm"
+								onClick={() => setStatusFilter("active")}
+							>
+								Aktif
+							</Button>
+
+							<Button
+								variant={statusFilter === "leave" ? "secondary" : "ghost"}
+								size="sm"
+								onClick={() => setStatusFilter("leave")}
+							>
+								Cuti
+							</Button>
+						</div>
+
+						<div className="flex items-center justify-between gap-4">
+							<span className="text-xs text-muted-foreground">
+								Menampilkan{" "}
+								<span className="font-semibold text-foreground">
+									{filteredMembers.length}
+								</span>{" "}
+								dari{" "}
+								<span className="font-semibold text-foreground">
+									{members?.length ?? 0}
+								</span>{" "}
+								anggota
+							</span>
+
+							<Button
+								variant="link"
+								size="sm"
+								className="h-auto p-0 text-xs"
+								onClick={() => {
+									setSearchQuery("");
+									setRoleFilter("all");
+									setStatusFilter("all");
+								}}
+							>
+								Reset Filter
+							</Button>
+						</div>
+					</div>
+				</div>
+			</div>
+
 			{/* Member Cards Grid */}
 			{isLoading ? (
-				<div className="max-w-6xl mx-auto space-y-4">
+				<div className="w-full max-w-[1400px] mx-auto space-y-4">
 					{[...Array(6)].map((_, i) => (
 						<Card key={i} className="h-40 animate-pulse bg-muted" />
 					))}
 				</div>
 			) : (
-				<div className="max-w-6xl mx-auto space-y-4">
-					{members?.map((member) => (
-						<Card
-							key={member.nik}
-							className={`transition-all ${member.isOnLeave ? "opacity-60 border-dashed" : ""}`}
-						>
-							{/* <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <CardTitle className="text-sm font-semibold leading-tight">{member.name}</CardTitle>
-                      <RoleBadge member={member} />
-                      {member.isOnLeave && (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-amber-400 text-amber-600 gap-1">
-                          <PlaneTakeoff className="h-2.5 w-2.5" />CUTI
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                      <span className="font-mono">{member.nik}</span>
-                      <span>•</span>
-                      <Building2 className="h-3 w-3" />
-                      <span>{member.jabatan}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(member)}>
-                      <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus {member.name}?</AlertDialogTitle>
-                          <AlertDialogDescription>Data yang dihapus tidak dapat dikembalikan.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(member.nik)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Hapus</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </CardHeader> */}
-							<CardContent className="pt-5">
-								<div className="flex items-start justify-between gap-4">
-									<div>
-										<div className="flex items-center gap-2 flex-wrap">
-											<h3 className="text-lg font-semibold">{member.name}</h3>
-
-											<RoleBadge member={member} />
-
-											{member.isOnLeave && (
-												<Badge
-													variant="outline"
-													className="border-amber-400 text-amber-600 gap-1"
-												>
-													<PlaneTakeoff className="h-3 w-3" />
-													CUTI
-												</Badge>
-											)}
-										</div>
-
-										<div className="text-sm text-muted-foreground mt-1">
-											{member.nik} • {member.jabatan}
-										</div>
-									</div>
-
-									<div className="flex gap-1">
-										<Button
-											variant="ghost"
-											size="icon"
-											onClick={() => handleEdit(member)}
+				<div className="w-full max-w-[1600px] mx-auto">
+					<div className="rounded-xl border bg-background shadow-sm overflow-hidden">
+						<div className="overflow-x-auto">
+							<table className="w-full min-w-[1180px] text-sm">
+								<thead className="border-b bg-muted/50">
+									<tr className="text-left">
+										<th
+											className="
+	sticky left-0 z-20
+	w-[90px] min-w-[90px]
+	bg-background
+	px-3 py-3
+  text-center
+	font-semibold
+	whitespace-nowrap
+	border-r
+	md:static md:w-auto md:min-w-0
+"
 										>
-											<Edit2 className="h-4 w-4" />
-										</Button>
+											Action
+										</th>
+										<th className="px-4 py-3 text-center font-semibold whitespace-nowrap">
+											Status
+										</th>
+										<th className="px-4 py-3 text-center font-semibold whitespace-nowrap">
+											NIK
+										</th>
+										<th className="px-4 py-3 font-semibold whitespace-nowrap">
+											Employee
+										</th>
+										<th className="px-4 py-3 font-semibold whitespace-nowrap">
+											Jabatan
+										</th>
+										<th className="px-4 py-3 text-center font-semibold whitespace-nowrap">
+											Role
+										</th>
+										<th className="px-4 py-3 font-semibold text-center whitespace-nowrap">
+											TTA
+										</th>
+										<th className="px-4 py-3 font-semibold text-center whitespace-nowrap">
+											Hazard
+										</th>
+										<th className="px-4 py-3 font-semibold text-center whitespace-nowrap">
+											Inspeksi
+										</th>
+										<th className="px-4 py-3 font-semibold text-center whitespace-nowrap">
+											Observasi
+										</th>
+										<th className="px-4 py-3 font-semibold text-center whitespace-nowrap">
+											OPK
+										</th>
+									</tr>
+								</thead>
 
-										<AlertDialog>
-											<AlertDialogTrigger asChild>
-												<Button variant="ghost" size="icon">
-													<Trash2 className="h-4 w-4 text-destructive" />
-												</Button>
-											</AlertDialogTrigger>
-
-											<AlertDialogContent>
-												<AlertDialogHeader>
-													<AlertDialogTitle>
-														Hapus {member.name}?
-													</AlertDialogTitle>
-
-													<AlertDialogDescription>
-														Data yang dihapus tidak dapat dikembalikan.
-													</AlertDialogDescription>
-												</AlertDialogHeader>
-
-												<AlertDialogFooter>
-													<AlertDialogCancel>Batal</AlertDialogCancel>
-
-													<AlertDialogAction
-														className="bg-destructive hover:bg-destructive/90"
-														onClick={() => handleDelete(member.nik)}
-													>
-														Hapus
-													</AlertDialogAction>
-												</AlertDialogFooter>
-											</AlertDialogContent>
-										</AlertDialog>
-									</div>
-								</div>
-
-								<Separator className="my-4" />
-								{/* <Separator className="mb-3" /> */}
-								{/* Target Summary */}
-								{/* <div className="grid grid-cols-4 gap-1 mb-3"> */}
-								<div className="flex items-center gap-8 mb-5">
-									{[
-										["TTA", member.targetTta],
-										["Hazard", member.targetHazard],
-										["Inspeksi", member.targetInspeksi],
-										["Observasi", member.targetObservasi],
-									].map(([label, value]) => (
-										<div
-											key={String(label)}
-											className="flex flex-col items-center"
+								<tbody className="divide-y">
+									{filteredMembers.map((member) => (
+										<tr
+											key={member.nik}
+											className={`transition-colors hover:bg-muted/30 ${
+												member.isOnLeave
+													? "bg-amber-50/40 dark:bg-amber-950/10"
+													: ""
+											}`}
 										>
-											<span className="text-2xl font-bold">{value}</span>
-
-											<span className="text-xs text-muted-foreground">
-												{label}
-											</span>
-										</div>
-									))}
-								</div>
-
-								{/* OPK Summary */}
-								{!member.isPjo && (
-									// <div className="bg-muted/30 rounded-md p-2 mb-3">
-									<div className="mb-5">
-										<div className="flex items-center gap-2 mb-3">
-											<Target className="h-3 w-3 text-muted-foreground" />
-											<span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-												Target OPK
-											</span>
-										</div>
-										{member.isHse ? (
-											<div className="flex gap-8">
-												<div className="flex flex-col items-center">
-													<span className="text-muted-foreground">
-														Keberadaan Pengawas
-													</span>
-													<span className="font-bold">
-														{member.targetOpkKeberadaanPengawas}
-													</span>
-												</div>
-												<div className="flex flex-col items-center">
-													<span className="text-muted-foreground">
-														Fungsi Pengawas
-													</span>
-													<span className="font-bold">
-														{member.targetOpkFungsiPengawas}
-													</span>
-												</div>
-											</div>
-										) : (
-											// <div className="grid grid-cols-3 gap-1 text-[10px]">
-											<div className="flex flex-wrap gap-8">
-												{[
-													["P2H", member.targetOpkP2h],
-													["Seatbelt", member.targetOpkSeatbelt],
-													["SIMPER", member.targetOpkSimper],
-													["Roster", member.targetOpkRoster],
-													["Fatigue", member.targetOpkFatigue],
-													["Lototo", member.targetOpkLototo],
-												].map(([l, v]) => (
-													<div
-														key={String(l)}
-														className="flex flex-col items-center"
+											{/* ACTION */}
+											<td
+												className="
+	sticky left-0 z-10
+	w-[90px] min-w-[90px]
+	bg-background
+	px-3 py-2.5
+	border-r
+	md:static md:w-auto md:min-w-0
+"
+											>
+												<div className="flex items-center justify-center gap-2">
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-8 w-8"
+														onClick={() => handleEdit(member)}
+														title="Edit anggota"
 													>
-														<span className="text-xl font-bold">{v}</span>
-														<span className="text-xs text-muted-foreground">
-															{l}
-														</span>
+														<Edit2 className="h-4 w-4" />
+													</Button>
+
+													<AlertDialog>
+														<AlertDialogTrigger asChild>
+															<Button
+																variant="ghost"
+																size="icon"
+																className="h-8 w-8 text-destructive hover:text-destructive"
+																title="Hapus anggota"
+															>
+																<Trash2 className="h-4 w-4" />
+															</Button>
+														</AlertDialogTrigger>
+
+														<AlertDialogContent>
+															<AlertDialogHeader>
+																<AlertDialogTitle>
+																	Hapus Anggota?
+																</AlertDialogTitle>
+																<AlertDialogDescription>
+																	Apakah Anda yakin ingin menghapus{" "}
+																	<strong>{member.name}</strong> dari daftar
+																	tim? Tindakan ini tidak dapat dibatalkan.
+																</AlertDialogDescription>
+															</AlertDialogHeader>
+
+															<AlertDialogFooter>
+																<AlertDialogCancel>Batal</AlertDialogCancel>
+																<AlertDialogAction
+																	onClick={() => handleDelete(member.nik)}
+																	className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+																>
+																	Hapus
+																</AlertDialogAction>
+															</AlertDialogFooter>
+														</AlertDialogContent>
+													</AlertDialog>
+												</div>
+											</td>
+
+											{/* STATUS */}
+											<td className="px-4 py-2.5">
+												<div className="flex items-center justify-center gap-2">
+													<Switch
+														checked={member.isOnLeave}
+														onCheckedChange={() => handleToggleLeave(member)}
+														className="data-[state=checked]:bg-amber-500"
+													/>
+
+													<Badge
+														variant={member.isOnLeave ? "secondary" : "default"}
+														className={
+															member.isOnLeave
+																? "bg-amber-100 text-amber-700 hover:bg-amber-100"
+																: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+														}
+													>
+														{member.isOnLeave ? "CUTI" : "ONSITE"}
+													</Badge>
+												</div>
+											</td>
+
+											{/* NIK */}
+											<td className="px-4 py-2.5 text-center font-mono text-xs whitespace-nowrap">
+												{member.nik}
+											</td>
+
+											{/* EMPLOYEE */}
+											<td className="px-4 py-2.5">
+												<div className="min-w-[190px]">
+													<div className="font-semibold whitespace-nowrap">
+														{member.name}
 													</div>
-												))}
-											</div>
-										)}
-									</div>
-								)}
+													<div className="text-xs text-muted-foreground">
+														{member.department}
+													</div>
+												</div>
+											</td>
 
-								{/* Leave toggle */}
-								<Separator className="mb-4" />
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-2">
-										<PlaneTakeoff
-											className={`h-3.5 w-3.5 ${member.isOnLeave ? "text-amber-500" : "text-muted-foreground"}`}
-										/>
-										<span className="text-sm text-muted-foreground">
-											Status Cuti
-										</span>
-									</div>
-									<Switch
-										checked={member.isOnLeave}
-										onCheckedChange={() => handleToggleLeave(member)}
-										disabled={setLeave.isPending}
-										className="data-[state=checked]:bg-amber-500 h-5 w-9"
-									/>
-								</div>
-							</CardContent>
-						</Card>
-					))}
+											{/* JABATAN */}
+											<td className="px-4 py-3 whitespace-nowrap min-w-[190px]">
+												{member.jabatan}
+											</td>
+
+											{/* ROLE */}
+											<td className="px-4 py-2.5 text-center">
+												<RoleBadge member={member} />
+											</td>
+
+											{/* TTA */}
+											<td className="px-4 py-3 text-center">
+												<span className="inline-flex min-w-[36px] justify-center rounded-md bg-muted px-2 py-1 font-semibold">
+													{member.targetTta ?? 0}
+												</span>
+											</td>
+
+											{/* HAZARD */}
+											<td className="px-4 py-3 text-center">
+												<span className="inline-flex min-w-[36px] justify-center rounded-md bg-red-50 px-2 py-1 font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-400">
+													{member.targetHazard ?? 0}
+												</span>
+											</td>
+
+											{/* INSPEKSI */}
+											<td className="px-4 py-3 text-center">
+												<span className="inline-flex min-w-[36px] justify-center rounded-md bg-blue-50 px-2 py-1 font-semibold text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+													{member.targetInspeksi ?? 0}
+												</span>
+											</td>
+
+											{/* OBSERVASI */}
+											<td className="px-4 py-3 text-center">
+												<span className="inline-flex min-w-[36px] justify-center rounded-md bg-green-50 px-2 py-1 font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400">
+													{member.targetObservasi ?? 0}
+												</span>
+											</td>
+
+											{/* OPK */}
+											<td className="px-4 py-2">
+												<div className="flex flex-wrap gap-1 max-w-[340px]">
+													{member.isPjo ? (
+														<span className="text-xs text-muted-foreground">
+															-
+														</span>
+													) : member.isHse ? (
+														<>
+															<Badge
+																variant="outline"
+																className="text-[10px] px-2 py-0.5"
+															>
+																Pengawas:{" "}
+																{member.targetOpkKeberadaanPengawas ?? 0}
+															</Badge>
+															<Badge
+																variant="outline"
+																className="text-[10px] px-2 py-0.5"
+															>
+																Fungsi: {member.targetOpkFungsiPengawas ?? 0}
+															</Badge>
+														</>
+													) : (
+														<>
+															<Badge
+																variant="outline"
+																className="text-[10px] px-2 py-0.5"
+															>
+																P2H: {member.targetOpkP2h ?? 0}
+															</Badge>
+															<Badge
+																variant="outline"
+																className="text-[10px] px-2 py-0.5"
+															>
+																SB: {member.targetOpkSeatbelt ?? 0}
+															</Badge>
+															<Badge
+																variant="outline"
+																className="text-[10px] px-2 py-0.5"
+															>
+																SIMPER: {member.targetOpkSimper ?? 0}
+															</Badge>
+															<Badge
+																variant="outline"
+																className="text-[10px] px-2 py-0.5"
+															>
+																Roster: {member.targetOpkRoster ?? 0}
+															</Badge>
+															<Badge
+																variant="outline"
+																className="text-[10px] px-2 py-0.5"
+															>
+																Fatigue: {member.targetOpkFatigue ?? 0}
+															</Badge>
+															<Badge
+																variant="outline"
+																className="text-[10px] px-2 py-0.5"
+															>
+																Lototo: {member.targetOpkLototo ?? 0}
+															</Badge>
+														</>
+													)}
+												</div>
+											</td>
+										</tr>
+									))}
+
+									{filteredMembers.length === 0 && (
+										<tr>
+											<td
+												colSpan={11}
+												className="px-4 py-12 text-center text-muted-foreground"
+											>
+												Tidak ada anggota yang sesuai dengan filter.
+											</td>
+										</tr>
+									)}
+								</tbody>
+							</table>
+						</div>
+					</div>
 				</div>
 			)}
 
 			{/* Edit/Add Sheet Drawer */}
 			<Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
-				<DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-					<DialogHeader className="mb-6">
-						<DialogTitle className="flex items-center gap-2">
-							{editingMember ? (
-								<Edit2 className="h-4 w-4" />
-							) : (
-								<Plus className="h-4 w-4" />
-							)}
-							{editingMember
-								? `Edit — ${editingMember.name}`
-								: "Tambah Anggota Baru"}
-						</DialogTitle>
-						<DialogDescription>
-							{editingMember
-								? "Perbarui profil, jabatan, dan target laporan anggota ini."
-								: "Isi data profil dan target laporan mingguan anggota baru."}
-						</DialogDescription>
-					</DialogHeader>
+				<DialogContent className="w-[calc(100%-2rem)] max-w-4xl max-h-[90vh] overflow-hidden p-0">
+					<div className="border-b px-6 py-4">
+						<DialogHeader>
+							<DialogTitle className="text-xl">
+								{editingMember ? "Edit Anggota" : "Tambah Anggota"}
+							</DialogTitle>
+
+							<DialogDescription>
+								{editingMember
+									? "Perbarui profil, role, dan target pelaporan anggota."
+									: "Lengkapi profil, role, dan target pelaporan anggota."}
+							</DialogDescription>
+						</DialogHeader>
+					</div>
 
 					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-							{/* Profile */}
-							<div className="space-y-3">
-								<h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-									Profil
-								</h3>
-								<div className="grid grid-cols-2 gap-3">
-									<FormField
-										control={form.control}
-										name="nik"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-xs">NIK</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														disabled={!!editingMember}
-														placeholder="C-012345"
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="name"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-xs">Nama Lengkap</FormLabel>
-												<FormControl>
-													<Input {...field} placeholder="Nama lengkap" />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="department"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-xs">Departemen</FormLabel>
-												<FormControl>
-													<Input {...field} placeholder="Operation" />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="jabatan"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-xs">Jabatan</FormLabel>
-												<FormControl>
-													<Input {...field} placeholder="Contoh: Team Leader" />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</div>
-							</div>
+						<form
+							onSubmit={form.handleSubmit(onSubmit)}
+							className="flex max-h-[calc(90vh-140px)] flex-col"
+						>
+							<div className="flex-1 overflow-y-auto px-6 py-6">
+								<div className="space-y-6">
+									{/* Profile */}
+									<div className="space-y-4">
+										<div>
+											<h3 className="text-sm font-semibold">Profil Anggota</h3>
 
-							<Separator />
-
-							{/* Role */}
-							<div className="space-y-3">
-								<h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-									Peran & Preset Target
-								</h3>
-								<div className="grid grid-cols-3 gap-2">
-									<Button
-										type="button"
-										size="sm"
-										variant={watchPjo ? "default" : "outline"}
-										className="text-xs h-8"
-										onClick={() => applyPreset("pjo")}
-									>
-										PJO
-									</Button>
-									<Button
-										type="button"
-										size="sm"
-										variant={watchHse && !watchPjo ? "default" : "outline"}
-										className="text-xs h-8"
-										onClick={() => applyPreset("hse")}
-									>
-										HSE
-									</Button>
-									<Button
-										type="button"
-										size="sm"
-										variant={!watchPjo && !watchHse ? "default" : "outline"}
-										className="text-xs h-8"
-										onClick={() => applyPreset("pengawas")}
-									>
-										Pengawas
-									</Button>
-								</div>
-								<p className="text-[10px] text-muted-foreground">
-									Pilih preset untuk isi otomatis target standar, atau edit
-									manual di bawah.
-								</p>
-							</div>
-
-							<Separator />
-
-							{/* Shared Targets */}
-							<div className="space-y-3">
-								<h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-									Target Laporan Mingguan
-								</h3>
-								<div className="grid grid-cols-4 gap-3">
-									<TargetInput
-										control={form.control}
-										name="targetTta"
-										label="TTA"
-									/>
-									<TargetInput
-										control={form.control}
-										name="targetHazard"
-										label="Hazard"
-									/>
-									<TargetInput
-										control={form.control}
-										name="targetInspeksi"
-										label="Inspeksi"
-									/>
-									<TargetInput
-										control={form.control}
-										name="targetObservasi"
-										label="Observasi"
-									/>
-								</div>
-							</div>
-
-							{/* OPK targets — visible only when not PJO */}
-							{!watchPjo && (
-								<>
-									<Separator />
-									<div className="space-y-3">
-										<h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-											Target OPK — {watchHse ? "HSE" : "Pengawas"}
-										</h3>
-										{watchHse ? (
-											<div className="grid grid-cols-2 gap-3">
-												<TargetInput
-													control={form.control}
-													name="targetOpkKeberadaanPengawas"
-													label="Keberadaan Pengawas"
-												/>
-												<TargetInput
-													control={form.control}
-													name="targetOpkFungsiPengawas"
-													label="Fungsi Pengawas"
-												/>
-											</div>
-										) : (
-											<div className="grid grid-cols-3 gap-3">
-												<TargetInput
-													control={form.control}
-													name="targetOpkP2h"
-													label="P2H"
-												/>
-												<TargetInput
-													control={form.control}
-													name="targetOpkSeatbelt"
-													label="Seatbelt"
-												/>
-												<TargetInput
-													control={form.control}
-													name="targetOpkSimper"
-													label="SIMPER"
-												/>
-												<TargetInput
-													control={form.control}
-													name="targetOpkRoster"
-													label="Roster"
-												/>
-												<TargetInput
-													control={form.control}
-													name="targetOpkFatigue"
-													label="Fatigue"
-												/>
-												<TargetInput
-													control={form.control}
-													name="targetOpkLototo"
-													label="Lototo"
-												/>
-											</div>
-										)}
+											<p className="mt-1 text-xs text-muted-foreground">
+												Informasi dasar anggota tim.
+											</p>
+										</div>
+										<div className="grid grid-cols-2 gap-4">
+											<FormField
+												control={form.control}
+												name="nik"
+												render={({ field }) => (
+													<FormItem className="space-y-2">
+														<FormLabel className="text-sm font-medium">
+															NIK
+														</FormLabel>
+														<FormControl>
+															<Input
+																{...field}
+																disabled={!!editingMember}
+																placeholder="C-012345"
+																className="h-10"
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="name"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel className="text-xs">
+															Nama Lengkap
+														</FormLabel>
+														<FormControl>
+															<Input {...field} placeholder="Nama lengkap" />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="department"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel className="text-xs">
+															Departemen
+														</FormLabel>
+														<FormControl>
+															<Input {...field} placeholder="Operation" />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="jabatan"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel className="text-xs">Jabatan</FormLabel>
+														<FormControl>
+															<Input
+																{...field}
+																placeholder="Contoh: Team Leader"
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</div>
 									</div>
-								</>
-							)}
 
-							<Separator />
+									<Separator />
 
-							<div className="flex gap-3 pt-2">
-								<Button
-									type="button"
-									variant="outline"
-									className="flex-1"
-									onClick={() => setSheetOpen(false)}
-								>
-									Batal
-								</Button>
-								<Button type="submit" className="flex-1" disabled={isPending}>
-									{isPending ? "Menyimpan..." : "Simpan Perubahan"}
-								</Button>
+									{/* Role */}
+
+									<div className="space-y-4">
+										<div>
+											<h3 className="text-sm font-semibold">
+												Role & Responsibility
+											</h3>
+
+											<p className="mt-1 text-xs text-muted-foreground">
+												Pilih role untuk menerapkan preset target standar.
+											</p>
+										</div>
+										<div className="grid grid-cols-3 gap-2">
+											<Button
+												type="button"
+												size="sm"
+												variant={watchPjo ? "default" : "outline"}
+												className={`h-12 ${
+													watchPjo
+														? "border-primary bg-primary text-primary-foreground"
+														: ""
+												}`}
+												onClick={() => applyPreset("pjo")}
+											>
+												PJO
+											</Button>
+											<Button
+												type="button"
+												size="sm"
+												variant={watchHse && !watchPjo ? "default" : "outline"}
+												className={`h-12 ${
+													watchHse
+														? "border-primary bg-primary text-primary-foreground"
+														: ""
+												}`}
+												onClick={() => applyPreset("hse")}
+											>
+												HSE
+											</Button>
+											<Button
+												type="button"
+												size="sm"
+												variant={!watchPjo && !watchHse ? "default" : "outline"}
+												className={`h-12 ${
+													!watchPjo && !watchHse
+														? "border-primary bg-primary text-primary-foreground"
+														: ""
+												}`}
+												onClick={() => applyPreset("pengawas")}
+											>
+												Pengawas
+											</Button>
+										</div>
+										<p className="text-xs text-muted-foreground">
+											Preset akan mengisi target standar secara otomatis. Target
+											masih dapat disesuaikan secara manual.
+										</p>
+									</div>
+
+									<Separator />
+
+									{/* Shared Targets */}
+									<div className="space-y-4">
+										<div>
+											<h3 className="text-sm font-semibold">Target SAP</h3>
+
+											<p className="mt-1 text-xs text-muted-foreground">
+												Target laporan keselamatan mingguan anggota.
+											</p>
+										</div>
+										<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+											<div className="rounded-lg border bg-muted/20 p-3">
+												<TargetInput
+													control={form.control}
+													name="targetTta"
+													label="TTA"
+												/>
+											</div>
+											<div className="rounded-lg border bg-muted/20 p-3">
+												<TargetInput
+													control={form.control}
+													name="targetHazard"
+													label="Hazard"
+												/>
+											</div>
+											<div className="rounded-lg border bg-muted/20 p-3">
+												<TargetInput
+													control={form.control}
+													name="targetInspeksi"
+													label="Inspeksi"
+												/>
+											</div>
+											<div className="rounded-lg border bg-muted/20 p-3">
+												<TargetInput
+													control={form.control}
+													name="targetObservasi"
+													label="Observasi"
+												/>
+											</div>
+										</div>
+									</div>
+
+									{/* OPK targets — visible only when not PJO */}
+									{!watchPjo && (
+										<>
+											<Separator />
+
+											<div className="space-y-4">
+												<div>
+													<h3 className="text-sm font-semibold">
+														Target OPK — {watchHse ? "HSE" : "Pengawas"}
+													</h3>
+
+													<p className="mt-1 text-xs text-muted-foreground">
+														Target OPK disesuaikan dengan tanggung jawab role
+														anggota.
+													</p>
+												</div>
+												{watchHse ? (
+													<div className="grid grid-cols-2 gap-4">
+														<div className="rounded-lg border bg-muted/20 p-3">
+															<TargetInput
+																control={form.control}
+																name="targetOpkKeberadaanPengawas"
+																label="Keberadaan Pengawas"
+															/>
+														</div>
+														<div className="rounded-lg border bg-muted/20 p-3">
+															<TargetInput
+																control={form.control}
+																name="targetOpkFungsiPengawas"
+																label="Fungsi Pengawas"
+															/>
+														</div>
+													</div>
+												) : (
+													<div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+														<div className="rounded-lg border bg-muted/20 p-3">
+															<TargetInput
+																control={form.control}
+																name="targetOpkP2h"
+																label="P2H"
+															/>
+														</div>
+														<div className="rounded-lg border bg-muted/20 p-3">
+															<TargetInput
+																control={form.control}
+																name="targetOpkSeatbelt"
+																label="Seatbelt"
+															/>
+														</div>
+														<div className="rounded-lg border bg-muted/20 p-3">
+															<TargetInput
+																control={form.control}
+																name="targetOpkSimper"
+																label="SIMPER"
+															/>
+														</div>
+														<div className="rounded-lg border bg-muted/20 p-3">
+															<TargetInput
+																control={form.control}
+																name="targetOpkRoster"
+																label="Roster"
+															/>
+														</div>
+														<div className="rounded-lg border bg-muted/20 p-3">
+															<TargetInput
+																control={form.control}
+																name="targetOpkFatigue"
+																label="Fatigue"
+															/>
+														</div>
+														<div className="rounded-lg border bg-muted/20 p-3">
+															<TargetInput
+																control={form.control}
+																name="targetOpkLototo"
+																label="Lototo"
+															/>
+														</div>
+													</div>
+												)}
+											</div>
+										</>
+									)}
+								</div>
+							</div>
+
+							<div className="shrink-0 border-t bg-background px-6 py-4">
+								<div className="flex justify-end gap-2">
+									<Button
+										type="button"
+										variant="outline"
+										onClick={() => setSheetOpen(false)}
+									>
+										Batal
+									</Button>
+
+									<Button type="submit" disabled={isPending}>
+										{isPending
+											? "Menyimpan..."
+											: editingMember
+												? "Simpan Perubahan"
+												: "Tambah Anggota"}
+									</Button>
+								</div>
 							</div>
 						</form>
 					</Form>

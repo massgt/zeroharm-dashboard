@@ -9,10 +9,10 @@ import type { MemberProgress } from "@/api-client";
 import { toPng } from "html-to-image";
 import {
 	AlertTriangle,
-	CalendarDays,
+	CalendarClock,
 	CheckCircle2,
 	CircleAlert,
-	Download,
+	Clock,
 	Info,
 	XCircle,
 } from "lucide-react";
@@ -28,7 +28,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import logoMVM from "@/assets/LogoMVM2.png";
 import logoCapture from "@/assets/capture.png";
-import { color } from "html2canvas/dist/types/css/types/color";
 
 type ComplianceItem = {
 	actual: number;
@@ -304,7 +303,7 @@ function MemberRow({
 				{index}
 			</td>
 
-			<td className="w-[185px] px-2 py-2 align-top">
+			<td className="w-[150px] px-2 py-2 align-top">
 				<div className="text-[11px] font-bold leading-tight text-slate-800">
 					{member.name}
 				</div>
@@ -322,23 +321,23 @@ function MemberRow({
 				)}
 			</td>
 
-			<td className="w-[70px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<Metric label="TTA" item={member.tta} />
 			</td>
 
-			<td className="w-[70px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<Metric label="HAZARD" item={member.hazard} />
 			</td>
 
-			<td className="w-[70px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<Metric label="INSPEKSI" item={member.inspeksi} />
 			</td>
 
-			<td className="w-[70px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<Metric label="OBSERVASI" item={member.observasi} />
 			</td>
 
-			<td className="min-w-[380px] px-2 py-2 align-top">
+			<td className="min-w-[480px] px-2 py-2 align-top">
 				{member.isPjo ? (
 					<div className="flex min-h-[60px] items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 text-[9px] text-slate-500">
 						<Info className="mr-1.5 h-3 w-3" />
@@ -353,7 +352,7 @@ function MemberRow({
 				)}
 			</td>
 
-			<td className="w-[75px] px-2 py-2 align-top">
+			<td className="w-[65px] px-1.5 py-2 align-top">
 				<div className="text-center">
 					<div className={`text-[16px] font-bold ${status.text}`}>
 						{member.overallPct}%
@@ -370,7 +369,7 @@ function MemberRow({
 				</div>
 			</td>
 
-			<td className="w-[155px] px-2 py-2 align-top">
+			<td className="w-[120px] px-1.5 py-2 align-top">
 				<div
 					className={`inline-flex rounded-md border px-1.5 py-0.5 text-[8px] font-bold ${status.bg} ${status.border} ${status.text}`}
 				>
@@ -402,6 +401,79 @@ function MemberRow({
 	);
 }
 
+function getWeekDueDate(weekStr: string, year: number): Date {
+	const weekNum = parseInt(weekStr.replace("W", ""), 10);
+
+	const jan4 = new Date(year, 0, 4);
+	const dayOfWeek = jan4.getDay();
+
+	const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+	const week1Monday = new Date(jan4);
+	week1Monday.setDate(jan4.getDate() + daysToMonday);
+
+	const targetMonday = new Date(week1Monday);
+	targetMonday.setDate(week1Monday.getDate() + (weekNum - 1) * 7);
+
+	const saturday = new Date(targetMonday);
+	saturday.setDate(targetMonday.getDate() + 5);
+
+	return saturday;
+}
+
+function formatDate(date: Date): string {
+	return date.toLocaleDateString("id-ID", {
+		weekday: "long",
+		day: "numeric",
+		month: "long",
+		year: "numeric",
+	});
+}
+
+function getDaysLabel(dueDate: Date): {
+	label: string;
+	urgent: boolean;
+	past: boolean;
+} {
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+
+	const due = new Date(dueDate);
+	due.setHours(0, 0, 0, 0);
+
+	const diff = Math.ceil((due.getTime() - today.getTime()) / 86400000);
+
+	if (diff < 0) {
+		return {
+			label: `Periode berakhir ${Math.abs(diff)} hari lalu`,
+			urgent: false,
+			past: true,
+		};
+	}
+
+	if (diff === 0) {
+		return {
+			label: "Deadline hari ini!",
+			urgent: true,
+			past: false,
+		};
+	}
+
+	if (diff === 1) {
+		return {
+			label: "Deadline besok",
+			urgent: true,
+			past: false,
+		};
+	}
+
+	return {
+		label: `${diff} hari lagi`,
+		urgent: diff <= 2,
+		past: false,
+	};
+}
+
 export default function Summary() {
 	const captureRef = useRef<HTMLDivElement>(null);
 
@@ -420,6 +492,12 @@ export default function Summary() {
 	}, [weeks, selectedWeek]);
 
 	const selectedWeekData = weeks?.find((w) => w.week === selectedWeek);
+
+	const dueDate = selectedWeekData
+		? getWeekDueDate(selectedWeekData.week, selectedWeekData.year)
+		: null;
+
+	const daysInfo = dueDate ? getDaysLabel(dueDate) : null;
 
 	const { data: dashboard, isLoading: loadingDashboard } = useGetDashboard(
 		{ week: selectedWeek },
@@ -462,17 +540,6 @@ export default function Summary() {
 						: 100,
 			};
 		});
-	}, [members]);
-
-	const missingOpkTotal = useMemo(() => {
-		return members.reduce((total, member) => {
-			return (
-				total +
-				getOpkItems(member).filter(
-					({ item }) => item && item.target > 0 && item.pct < 100,
-				).length
-			);
-		}, 0);
 	}, [members]);
 
 	const handleCapture = async () => {
@@ -544,9 +611,9 @@ export default function Summary() {
 					</p>
 				</div>
 
-				<div className="flex items-center gap-2">
+				<div className="flex w-full items-center gap-2 sm:w-auto">
 					<Select value={selectedWeek} onValueChange={setSelectedWeek}>
-						<SelectTrigger className="w-[160px]">
+						<SelectTrigger className="w-full sm:w-[160px]">
 							<SelectValue />
 						</SelectTrigger>
 
@@ -577,180 +644,182 @@ export default function Summary() {
 			</div>
 
 			{/* =========================================================
-			    A4 LANDSCAPE CAPTURE
-			========================================================= */}
-			<div
-				ref={captureRef}
-				id="summary-capture"
-				className="mx-auto w-full max-w-[1400px] bg-white p-5 text-slate-900"
-			>
-				{/* Header */}
-				<div className="flex items-start justify-between border-b border-slate-300 pb-3">
-					<div className="flex items-center gap-3">
-						{/* Logo Minergo */}
-						<img
-							src={logoMVM}
-							alt="Minergo"
-							className="h-12 w-auto shrink-0 object-contain"
-						/>
+    A4 LANDSCAPE CAPTURE
+========================================================= */}
+			<div className="w-full min-w-0 overflow-x-auto md:overflow-x-visible">
+				<div
+					ref={captureRef}
+					id="summary-capture"
+					className="
+			mx-auto
+			w-[1400px]
+			max-w-none
+			bg-white
+			p-5
+			text-slate-900
 
-						{/* Judul Report */}
-						<div className="min-w-0">
-							<h1 className="text-2xl font-bold text-slate-900">
-								SUMMARY SAFETY ACCOUNTABILITY PROGRAM (SAP) REPORT
-							</h1>
+			md:w-full
+			md:max-w-[1400px]
+		"
+				>
+					{/* Header */}
+					<div className="flex items-start justify-between border-b border-slate-300 pb-3">
+						<div className="flex items-center gap-3">
+							{/* Logo Minergo */}
+							<img
+								src={logoMVM}
+								alt="Minergo"
+								className="h-12 w-auto shrink-0 object-contain"
+							/>
 
-							<p className="mt-1 text-sm text-slate-500">
-								Monitoring TTA, Hazard, Inspeksi, Observasi & OPK per Anggota
-							</p>
-						</div>
-					</div>
+							{/* Judul Report */}
+							<div className="min-w-0">
+								<h1 className="text-2xl font-bold text-slate-900">
+									SUMMARY SAFETY ACCOUNTABILITY PROGRAM (SAP) REPORT
+								</h1>
 
-					<div className="text-right">
-						<div className="text-[15px] font-bold text-slate-800">
-							{selectedWeekData?.label || selectedWeek}
-						</div>
-
-						<div className="mt-1 flex items-center justify-end gap-1 text-[9px] text-slate-500">
-							<CalendarDays className="h-3 w-3" />
-							Periode minggu aktif
-						</div>
-					</div>
-				</div>
-
-				{/* KPI */}
-				<div className="mt-3 grid grid-cols-5 gap-2">
-					<div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-						<div className="text-[8px] font-semibold uppercase text-slate-500">
-							TOTAL ANGGOTA
-						</div>
-						<div className="mt-0.5 text-[22px] font-bold text-slate-900">
-							{dashboard.summary.totalMembers}
-						</div>
-						<div className="text-[8px] text-slate-400">
-							anggota aktif / onsite
-						</div>
-					</div>
-
-					<div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-						<div className="text-[8px] font-semibold uppercase text-emerald-700">
-							SELESAI
-						</div>
-						<div className="mt-0.5 text-[22px] font-bold text-emerald-700">
-							{fullyCompliant}
-						</div>
-						<div className="text-[8px] text-emerald-700/70">
-							mencapai 100% target
-						</div>
-					</div>
-
-					<div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-						<div className="text-[8px] font-semibold uppercase text-amber-700">
-							SEBAGIAN
-						</div>
-						<div className="mt-0.5 text-[22px] font-bold text-amber-700">
-							{partiallyCompliant}
-						</div>
-						<div className="text-[8px] text-amber-700/70">
-							masih ada target belum tercapai
-						</div>
-					</div>
-
-					<div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5">
-						<div className="text-[8px] font-semibold uppercase text-rose-700">
-							BELUM LAPOR
-						</div>
-						<div className="mt-0.5 text-[22px] font-bold text-rose-700">
-							{notReported}
-						</div>
-						<div className="text-[8px] text-rose-700/70">
-							tidak ada laporan sama sekali
-						</div>
-					</div>
-
-					<div
-						className={`rounded-lg border px-3 py-2.5 ${statusFor(overallPct).bg} ${statusFor(overallPct).border}`}
-					>
-						<div
-							className={`text-[8px] font-semibold uppercase ${statusFor(overallPct).text}`}
-						>
-							KEPATUHAN TOTAL
+								<p className="mt-1 text-sm text-slate-500">
+									Monitoring TTA, Hazard, Inspeksi, Observasi & OPK per Anggota
+								</p>
+							</div>
 						</div>
 
-						<div
-							className={`mt-0.5 text-[22px] font-bold ${statusFor(overallPct).text}`}
-						>
-							{overallPct}%
-						</div>
+						<div className="flex flex-col items-end">
+							<div className="text-[15px] font-bold leading-tight text-slate-800">
+								{selectedWeekData?.label || selectedWeek}
+							</div>
 
-						<div
-							className={`text-[8px] opacity-70 ${statusFor(overallPct).text}`}
-						>
-							rata-rata kepatuhan tim
-						</div>
-					</div>
-				</div>
-
-				{/* Rekap indikator */}
-				<div className="mt-3 grid grid-cols-[1fr_1fr_1fr] gap-2">
-					<div className="rounded-lg border border-slate-200 px-3 py-2.5">
-						<div className="mb-2 text-[10px] font-bold text-slate-700">
-							REKAP INDIKATOR
-						</div>
-
-						<div className="grid grid-cols-4 gap-2">
-							{categorySummary.map((item) => (
+							{dueDate && daysInfo && (
 								<div
-									key={item.label}
-									className="rounded-md border border-slate-100 bg-slate-50 px-2 py-2 text-center"
+									className={`mt-1 text-[9px] font-medium leading-tight border rounded-full px-1 py-1 ${
+										daysInfo.past
+											? "border-muted text-muted-foreground"
+											: daysInfo.urgent
+												? "border-rose-400 bg-rose-500/10 text-rose-600"
+												: "border-emerald-400 bg-emerald-500/10 text-emerald-600"
+									}`}
 								>
-									<div className="text-[8px] font-medium text-slate-500">
-										{item.label}
-									</div>
+									Deadline: {formatDate(dueDate)}
+								</div>
+							)}
+						</div>
+					</div>
 
-									<div className="mt-1 text-[13px] font-bold text-slate-800">
-										{item.achieved}/{item.total}
-									</div>
+					{/* KPI */}
+					<div className="mt-3 grid grid-cols-5 gap-2">
+						<div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+							<div className="text-[8px] font-semibold uppercase text-slate-500">
+								TOTAL ANGGOTA
+							</div>
+							<div className="mt-0.5 text-[22px] font-bold text-slate-900">
+								{dashboard.summary.totalMembers}
+							</div>
+							<div className="text-[8px] text-slate-400">
+								anggota aktif / onsite
+							</div>
+						</div>
 
+						<div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+							<div className="text-[8px] font-semibold uppercase text-emerald-700">
+								SELESAI
+							</div>
+							<div className="mt-0.5 text-[22px] font-bold text-emerald-700">
+								{fullyCompliant}
+							</div>
+							<div className="text-[8px] text-emerald-700/70">
+								mencapai 100% target
+							</div>
+						</div>
+
+						<div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+							<div className="text-[8px] font-semibold uppercase text-amber-700">
+								SEBAGIAN
+							</div>
+							<div className="mt-0.5 text-[22px] font-bold text-amber-700">
+								{partiallyCompliant}
+							</div>
+							<div className="text-[8px] text-amber-700/70">
+								masih ada target belum tercapai
+							</div>
+						</div>
+
+						<div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5">
+							<div className="text-[8px] font-semibold uppercase text-rose-700">
+								BELUM LAPOR
+							</div>
+							<div className="mt-0.5 text-[22px] font-bold text-rose-700">
+								{notReported}
+							</div>
+							<div className="text-[8px] text-rose-700/70">
+								tidak ada laporan sama sekali
+							</div>
+						</div>
+
+						<div
+							className={`rounded-lg border px-3 py-2.5 ${statusFor(overallPct).bg} ${statusFor(overallPct).border}`}
+						>
+							<div
+								className={`text-[8px] font-semibold uppercase ${statusFor(overallPct).text}`}
+							>
+								KEPATUHAN TOTAL
+							</div>
+
+							<div
+								className={`mt-0.5 text-[22px] font-bold ${statusFor(overallPct).text}`}
+							>
+								{overallPct}%
+							</div>
+
+							<div
+								className={`text-[8px] opacity-70 ${statusFor(overallPct).text}`}
+							>
+								rata-rata kepatuhan tim
+							</div>
+						</div>
+					</div>
+
+					{/* Rekap indikator */}
+					{/* Rekap indikator */}
+					<div className="mt-3 grid grid-cols-[1fr_2fr] gap-2">
+						{/* REKAP INDIKATOR */}
+						<div className="rounded-lg border border-slate-200 px-3 py-2.5">
+							<div className="mb-2 text-[10px] font-bold text-slate-700">
+								REKAP INDIKATOR
+							</div>
+
+							<div className="grid grid-cols-4 gap-2">
+								{categorySummary.map((item) => (
 									<div
-										className={`text-[8px] font-semibold ${
-											item.pct >= 100 ? "text-emerald-600" : "text-amber-600"
-										}`}
+										key={item.label}
+										className="rounded-md border border-slate-100 bg-slate-50 px-2 py-2 text-center"
 									>
-										{item.pct}% achieve
+										<div className="text-[8px] font-medium text-slate-500">
+											{item.label}
+										</div>
+
+										<div className="mt-1 text-[13px] font-bold text-slate-800">
+											{item.achieved}/{item.total}
+										</div>
+
+										<div
+											className={`text-[8px] font-semibold ${
+												item.pct >= 100 ? "text-emerald-600" : "text-amber-600"
+											}`}
+										>
+											{item.pct}% achieve
+										</div>
 									</div>
-								</div>
-							))}
-						</div>
-					</div>
-
-					<div className="rounded-lg border border-slate-200 px-3 py-2.5">
-						<div className="text-[10px] font-bold text-slate-700">
-							STATUS OPK
-						</div>
-
-						<div className="mt-2 flex items-center gap-3">
-							<div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-50">
-								<AlertTriangle className="h-5 w-5 text-amber-500" />
-							</div>
-
-							<div>
-								<div className="text-[17px] font-bold text-amber-700">
-									{missingOpkTotal}
-								</div>
-								<div className="text-[8px] text-slate-500">
-									OPK belum achieve
-								</div>
+								))}
 							</div>
 						</div>
-					</div>
 
-					<div className="rounded-lg border border-slate-200 px-3 py-2.5">
-						<div className="text-[10px] font-bold text-slate-700">
-							KESESUAIAN WAKTU PELAPORAN INSPEKSI
-						</div>
+						{/* KESESUAIAN WAKTU PELAPORAN INSPEKSI */}
+						<div className="rounded-lg border border-slate-200 px-3 py-2.5">
+							<div className="text-[10px] font-bold text-slate-700">
+								KESESUAIAN WAKTU PELAPORAN INSPEKSI
+							</div>
 
-						<div className="mt-1.5 grid grid-cols-3 gap-x-3 text-[7px] text-slate-600">
+							{/* <div className="mt-1.5 grid grid-cols-3 gap-x-3 text-[7px] text-slate-600">
 							<div className="flex items-center gap-1">
 								<CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" />
 								<span>Hijau = target tercapai</span>
@@ -765,79 +834,80 @@ export default function Summary() {
 								<XCircle className="h-2.5 w-2.5 text-rose-600" />
 								<span>Merah = 0%</span>
 							</div>
+						</div> */}
+
+							<div className="mt-1 border-t border-slate-100 pt-1.5">
+								<div className="grid grid-cols-2 gap-x-4 gap-y-1">
+									{members.map((member) => (
+										<InspectionTimeRow key={member.nik} member={member} />
+									))}
+								</div>
+
+								<div className="mt-1 text-right text-[7px] text-slate-400">
+									Sesuai / Total Inspeksi
+								</div>
+							</div>
+						</div>
+					</div>
+
+					{/* Table */}
+					<div className="mt-3 overflow-hidden rounded-lg border border-slate-300">
+						<div className="bg-slate-950 px-3 py-1.5 text-[10px] font-bold tracking-wide text-white">
+							DETAIL CAPAIAN SAP & OPK PER ANGGOTA
 						</div>
 
-						<div className="mt-2 border-t border-slate-100 pt-1.5">
-							{/* <div className="mb-1 text-[8px] font-semibold text-slate-600">
-								KESESUAIAN WAKTU PELAPORAN INSPEKSI
-							</div> */}
+						<table className="w-full border-collapse">
+							<thead>
+								<tr className="bg-slate-50">
+									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+										NO
+									</th>
 
-							<div className="grid grid-cols-2 gap-x-4 gap-y-1">
-								{members.map((member) => (
-									<InspectionTimeRow key={member.nik} member={member} />
+									<th className="px-2 py-2 text-left text-[8px] font-bold text-slate-600">
+										NAMA & POSISI / NIK
+									</th>
+
+									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+										TTA
+									</th>
+
+									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+										HAZARD
+									</th>
+
+									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+										INSPEKSI
+									</th>
+
+									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+										OBSERVASI
+									</th>
+
+									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+										DETAIL OPK (AKTUAL / TARGET)
+									</th>
+
+									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+										OVERALL
+									</th>
+
+									<th className="px-2 py-2 text-left text-[8px] font-bold text-slate-600">
+										STATUS & TINDAK LANJUT
+									</th>
+								</tr>
+							</thead>
+
+							<tbody>
+								{members.map((member, index) => (
+									<MemberRow
+										key={member.nik}
+										member={member}
+										index={index + 1}
+									/>
 								))}
-							</div>
-
-							<div className="mt-1 text-right text-[7px] text-slate-400">
-								Sesuai / Total Inspeksi
-							</div>
-						</div>
+							</tbody>
+						</table>
 					</div>
-				</div>
-
-				{/* Table */}
-				<div className="mt-3 overflow-hidden rounded-lg border border-slate-300">
-					<div className="bg-slate-950 px-3 py-1.5 text-[10px] font-bold tracking-wide text-white">
-						DETAIL CAPAIAN SAP & OPK PER ANGGOTA
-					</div>
-
-					<table className="w-full border-collapse">
-						<thead>
-							<tr className="bg-slate-50">
-								<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
-									NO
-								</th>
-
-								<th className="px-2 py-2 text-left text-[8px] font-bold text-slate-600">
-									NAMA & POSISI / NIK
-								</th>
-
-								<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
-									TTA
-								</th>
-
-								<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
-									HAZARD
-								</th>
-
-								<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
-									INSPEKSI
-								</th>
-
-								<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
-									OBSERVASI
-								</th>
-
-								<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
-									DETAIL OPK (AKTUAL / TARGET)
-								</th>
-
-								<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
-									OVERALL
-								</th>
-
-								<th className="px-2 py-2 text-left text-[8px] font-bold text-slate-600">
-									STATUS & TINDAK LANJUT
-								</th>
-							</tr>
-						</thead>
-
-						<tbody>
-							{members.map((member, index) => (
-								<MemberRow key={member.nik} member={member} index={index + 1} />
-							))}
-						</tbody>
-					</table>
 				</div>
 
 				{/* Footer */}

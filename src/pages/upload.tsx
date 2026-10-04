@@ -380,28 +380,28 @@ export default function UploadData() {
 
 	return (
 		<div className="space-y-6">
-			<div>
-				<h1 className="text-3xl font-bold tracking-tight">
+			<div className="min-w-0">
+				<h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
 					Upload Raw Data Zero Harm 2.0
 				</h1>
 
-				<p className="mt-1 text-muted-foreground">
+				<p className="mt-1 text-sm sm:text-base text-muted-foreground">
 					Import data Safety Accountability Program dari BIB
 				</p>
 			</div>
 
-			<div className="grid gap-4 lg:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 				{/* =========================
 	    UPLOAD EXCEL
 	========================= */}
 				<Card className="border-slate-200 shadow-sm">
 					<CardHeader className="pb-3">
-						<div className="flex items-center gap-3">
+						<div className="flex items-center gap-3 min-w-0">
 							<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
 								<FileSpreadsheet className="h-5 w-5 text-emerald-600" />
 							</div>
 
-							<div>
+							<div className="min-w-0">
 								<CardTitle className="text-base">Upload File Excel</CardTitle>
 								<CardDescription className="mt-0.5 text-xs">
 									Upload raw data SAP dari BIB
@@ -412,7 +412,7 @@ export default function UploadData() {
 
 					<CardContent>
 						<div
-							className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+							className={`cursor-pointer rounded-lg border-2 border-dashed p-5 sm:p-8 text-center transition-colors ${
 								isDragging
 									? "border-primary bg-primary/5"
 									: "border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/30"
@@ -437,7 +437,10 @@ export default function UploadData() {
 
 								{selectedFile ? (
 									<>
-										<p className="mt-3 max-w-full truncate px-4 text-sm font-semibold">
+										<p
+											className="mt-3 w-full max-w-full truncate px-2 sm:px-4 text-sm font-semibold"
+											title={selectedFile.name}
+										>
 											{selectedFile.name}
 										</p>
 
@@ -477,7 +480,7 @@ export default function UploadData() {
 							)}
 						</Button>
 
-						<div className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+						<div className="mt-3 rounded-md bg-slate-50 px-3 py-2.5 text-[11px] leading-relaxed text-slate-500">
 							<span className="font-medium text-slate-700">Catatan:</span>{" "}
 							Gunakan metode Google Sheet untuk file berukuran besar.
 						</div>
@@ -489,14 +492,14 @@ export default function UploadData() {
 	========================= */}
 				<Card className="border-slate-200 shadow-sm">
 					<CardHeader className="pb-3">
-						<div className="flex items-center gap-3">
+						<div className="flex items-center gap-3 min-w-0">
 							<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
 								<CloudDownload className="h-5 w-5 text-blue-600" />
 							</div>
 
-							<div>
+							<div className="min-w-0">
 								<CardTitle className="text-base">Import Google Sheet</CardTitle>
-								<CardDescription className="mt-0.5 text-xs">
+								<CardDescription className="mt-0.5 text-xs truncate">
 									Import langsung dari Google Drive
 								</CardDescription>
 							</div>
@@ -504,7 +507,7 @@ export default function UploadData() {
 					</CardHeader>
 
 					<CardContent>
-						<div className="rounded-lg border border-dashed border-blue-300 bg-blue-50/40 p-6">
+						<div className="rounded-lg border border-dashed border-blue-300 bg-blue-50/40 p-4 sm:p-6">
 							<div className="flex flex-col items-center text-center">
 								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
 									<Link2 className="h-6 w-6 text-blue-600" />
@@ -514,7 +517,7 @@ export default function UploadData() {
 									Masukkan URL Google Spreadsheet
 								</p>
 
-								<p className="mt-1 max-w-sm text-xs text-muted-foreground">
+								<p className="mt-1 max-w-sm px-2 text-xs text-muted-foreground">
 									Data akan dibaca langsung dari Google Drive dan diproses oleh
 									server.
 								</p>
@@ -551,7 +554,7 @@ export default function UploadData() {
 							</Button>
 						</div>
 
-						<div className="mt-3 rounded-md bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+						<div className="mt-3 rounded-md bg-blue-50 px-3 py-2.5 text-[11px] leading-relaxed text-blue-700">
 							<span className="font-semibold">File besar?</span> Gunakan Google
 							Sheet. File tidak perlu diupload melalui browser sehingga ukuran
 							file besar tetap dapat diproses.
@@ -576,86 +579,96 @@ export default function UploadData() {
 						</div>
 					) : uploads && uploads.length > 0 ? (
 						<div>
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead className="w-[60px]">No.</TableHead>
-										<TableHead>Nama File</TableHead>
-										<TableHead>Tanggal Upload</TableHead>
-										<TableHead>Minggu Ditemukan</TableHead>
-										<TableHead className="text-right">Baris Diproses</TableHead>
-										<TableHead className="w-[60px]"></TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{paginatedUploads.map((upload, index) => (
-										<TableRow key={upload.id}>
-											<TableCell className="text-muted-foreground">
-												{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-											</TableCell>
+							<div className="md:hidden mb-3 rounded-md bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+								← swipe tabel ke kanan →
+							</div>
 
-											<TableCell className="font-medium">
-												<div className="flex items-center gap-2">
-													{upload.sourceType === "google_sheet" ? (
-														<Cloud className="h-4 w-4 text-blue-600" />
-													) : (
-														<FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-													)}
+							<div className="w-full min-w-0">
+								<div className="w-full overflow-x-auto rounded-md border">
+									<Table className="min-w-[760px]">
+										<TableHeader>
+											<TableRow>
+												<TableHead className="w-[60px]">No.</TableHead>
+												<TableHead>Nama File</TableHead>
+												<TableHead>Tanggal Upload</TableHead>
+												<TableHead>Minggu Ditemukan</TableHead>
+												<TableHead className="text-right">
+													Baris Diproses
+												</TableHead>
+												<TableHead className="w-[60px]"></TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{paginatedUploads.map((upload, index) => (
+												<TableRow key={upload.id}>
+													<TableCell className="text-muted-foreground">
+														{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+													</TableCell>
 
-													<span className="truncate">
-														{upload.sourceType === "google_sheet"
-															? "Google Sheet"
-															: upload.filename}
-													</span>
-												</div>
-											</TableCell>
-											<TableCell>
-												{format(
-													new Date(upload.uploadedAt),
-													"dd MMM yyyy, HH:mm",
-												)}
-											</TableCell>
-											<TableCell>
-												<div className="flex flex-wrap gap-1">
-													{upload.weeksFound.map((week) => (
-														<span
-															key={week}
-															className="bg-muted px-2 py-0.5 rounded text-xs"
+													<TableCell className="font-medium">
+														<div className="flex items-center gap-2">
+															{upload.sourceType === "google_sheet" ? (
+																<Cloud className="h-4 w-4 text-blue-600" />
+															) : (
+																<FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+															)}
+
+															<span className="truncate">
+																{upload.sourceType === "google_sheet"
+																	? "Google Sheet"
+																	: upload.filename}
+															</span>
+														</div>
+													</TableCell>
+													<TableCell>
+														{format(
+															new Date(upload.uploadedAt),
+															"dd MMM yyyy, HH:mm",
+														)}
+													</TableCell>
+													<TableCell>
+														<div className="flex flex-wrap gap-1">
+															{upload.weeksFound.map((week) => (
+																<span
+																	key={week}
+																	className="bg-muted px-2 py-0.5 rounded text-xs"
+																>
+																	{week}
+																</span>
+															))}
+														</div>
+													</TableCell>
+													<TableCell className="text-right">
+														{upload.rowsProcessed.toLocaleString()}
+													</TableCell>
+
+													<TableCell className="text-right">
+														<Button
+															variant="ghost"
+															size="icon"
+															className="text-destructive hover:text-destructive hover:bg-destructive/10"
+															disabled={deletingUploadId === upload.id}
+															onClick={() =>
+																openDeleteDialog(upload.id, upload.filename)
+															}
+															title="Hapus data upload"
 														>
-															{week}
-														</span>
-													))}
-												</div>
-											</TableCell>
-											<TableCell className="text-right">
-												{upload.rowsProcessed.toLocaleString()}
-											</TableCell>
-
-											<TableCell className="text-right">
-												<Button
-													variant="ghost"
-													size="icon"
-													className="text-destructive hover:text-destructive hover:bg-destructive/10"
-													disabled={deletingUploadId === upload.id}
-													onClick={() =>
-														openDeleteDialog(upload.id, upload.filename)
-													}
-													title="Hapus data upload"
-												>
-													{deletingUploadId === upload.id ? (
-														<Loader2 className="h-4 w-4 animate-spin" />
-													) : (
-														<Trash2 className="h-4 w-4" />
-													)}
-												</Button>
-											</TableCell>
-										</TableRow>
-									))}
-								</TableBody>
-							</Table>
+															{deletingUploadId === upload.id ? (
+																<Loader2 className="h-4 w-4 animate-spin" />
+															) : (
+																<Trash2 className="h-4 w-4" />
+															)}
+														</Button>
+													</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								</div>
+							</div>
 							{totalPages > 1 && (
-								<div className="mt-4 flex items-center justify-between border-t pt-4">
-									<div className="text-xs text-muted-foreground">
+								<div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+									<div className="text-center text-xs text-muted-foreground sm:text-left">
 										Menampilkan{" "}
 										<span className="font-medium text-foreground">
 											{(currentPage - 1) * ITEMS_PER_PAGE + 1}
@@ -674,7 +687,7 @@ export default function UploadData() {
 										riwayat
 									</div>
 
-									<div className="flex items-center gap-1">
+									<div className="flex w-full items-center justify-center gap-1 overflow-x-auto sm:w-auto">
 										<Button
 											variant="outline"
 											size="sm"
@@ -683,8 +696,8 @@ export default function UploadData() {
 												setCurrentPage((page) => Math.max(1, page - 1))
 											}
 										>
-											<ChevronLeft className="mr-1 h-4 w-4" />
-											Sebelumnya
+											<ChevronLeft className="h-4 w-4 sm:mr-1" />
+											<span className="hidden sm:inline">Sebelumnya</span>
 										</Button>
 
 										{Array.from({ length: totalPages }, (_, index) => index + 1)
@@ -730,8 +743,8 @@ export default function UploadData() {
 												setCurrentPage((page) => Math.min(totalPages, page + 1))
 											}
 										>
-											Berikutnya
-											<ChevronRight className="ml-1 h-4 w-4" />
+											<span className="hidden sm:inline">Berikutnya</span>
+											<ChevronRight className="h-4 w-4 sm:ml-1" />
 										</Button>
 									</div>
 								</div>
@@ -745,6 +758,39 @@ export default function UploadData() {
 					)}
 				</CardContent>
 			</Card>
+			{/* =========================================================
+    SUCCESS DIALOG
+========================================================= */}
+			<AlertDialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+				<AlertDialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
+					<AlertDialogHeader>
+						<div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+							<CheckCircle2 className="h-7 w-7 text-emerald-600" />
+						</div>
+
+						<AlertDialogTitle className="text-center">
+							{successTitle}
+						</AlertDialogTitle>
+
+						<AlertDialogDescription className="text-center">
+							{successDescription}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+
+					<AlertDialogFooter>
+						<AlertDialogAction
+							onClick={() => setSuccessDialogOpen(false)}
+							className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+						>
+							Selesai
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* =========================================================
+    DELETE DIALOG
+========================================================= */}
 			<AlertDialog
 				open={deleteDialogOpen}
 				onOpenChange={(open) => {
@@ -757,37 +803,7 @@ export default function UploadData() {
 					}
 				}}
 			>
-				<AlertDialog
-					open={successDialogOpen}
-					onOpenChange={setSuccessDialogOpen}
-				>
-					<AlertDialogContent className="sm:max-w-md">
-						<AlertDialogHeader>
-							<div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-								<CheckCircle2 className="h-7 w-7 text-emerald-600" />
-							</div>
-
-							<AlertDialogTitle className="text-center">
-								{successTitle}
-							</AlertDialogTitle>
-
-							<AlertDialogDescription className="text-center">
-								{successDescription}
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-
-						<AlertDialogFooter>
-							<AlertDialogAction
-								onClick={() => setSuccessDialogOpen(false)}
-								className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
-							>
-								Selesai
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
-
-				<AlertDialogContent>
+				<AlertDialogContent className="w-[calc(100%-2rem)] sm:max-w-lg">
 					<AlertDialogHeader>
 						<AlertDialogTitle>Hapus data upload?</AlertDialogTitle>
 
