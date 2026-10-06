@@ -416,11 +416,11 @@ export default function Members() {
 							/>
 						</div>
 
-						<div className="flex flex-wrap gap-2">
+						<div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
 							<Button
 								variant={roleFilter === "all" ? "default" : "outline"}
 								onClick={() => setRoleFilter("all")}
-								className="h-10"
+								className="h-10 w-full sm:w-auto"
 							>
 								Semua Role
 							</Button>
@@ -428,7 +428,7 @@ export default function Members() {
 							<Button
 								variant={roleFilter === "pjo" ? "default" : "outline"}
 								onClick={() => setRoleFilter("pjo")}
-								className="h-10"
+								className="h-10 w-full sm:w-auto"
 							>
 								PJO
 							</Button>
@@ -436,7 +436,7 @@ export default function Members() {
 							<Button
 								variant={roleFilter === "hse" ? "default" : "outline"}
 								onClick={() => setRoleFilter("hse")}
-								className="h-10"
+								className="h-10 w-full sm:w-auto"
 							>
 								HSE
 							</Button>
@@ -444,7 +444,7 @@ export default function Members() {
 							<Button
 								variant={roleFilter === "pengawas" ? "default" : "outline"}
 								onClick={() => setRoleFilter("pengawas")}
-								className="h-10"
+								className="h-10 w-full sm:w-auto"
 							>
 								Pengawas
 							</Button>
@@ -521,7 +521,7 @@ export default function Members() {
 					))}
 				</div>
 			) : (
-				<div className="w-full max-w-[1600px] mx-auto">
+				<div className="w-full">
 					<div className="rounded-xl border bg-background shadow-sm overflow-hidden">
 						<div className="overflow-x-auto">
 							<table className="w-full min-w-[1180px] text-sm">

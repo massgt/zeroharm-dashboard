@@ -61,22 +61,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
           bg-sidebar text-sidebar-foreground
           border-r border-sidebar-border
           overflow-hidden
-          bg-amber-500
 
           transform
           transition-[width,transform]
           duration-200
           ease-out
 
-          w-64
+       w-64
 
-          md:relative
-          md:translate-x-0
-          md:w-16
-          md:hover:w-64
-          md:shrink-0
+md:relative
+md:translate-x-0
+md:w-16
+md:hover:w-64
+md:shrink-0
 
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
 			>
 				{/* =====================================================
