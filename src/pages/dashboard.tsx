@@ -238,7 +238,7 @@ function ComplianceMemberTable({ members }: { members: ComplianceMember[] }) {
 	return (
 		<div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
 			{/* Header */}
-			<div className="flex items-center justify-between gap-4 px-6 py-5 border-b">
+			<div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5 border-b">
 				<div>
 					<h2 className="text-lg font-semibold tracking-tight">
 						Detail Kepatuhan per Anggota
@@ -249,11 +249,11 @@ function ComplianceMemberTable({ members }: { members: ComplianceMember[] }) {
 					</p>
 				</div>
 
-				<div className="flex items-center rounded-xl bg-muted p-1 shrink-0">
+				<div className="flex w-full sm:w-auto items-center rounded-xl bg-muted p-1 shrink-0">
 					<button
 						type="button"
 						onClick={() => setView("all")}
-						className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+						className={`px-4 py-2 rounded-lg text-sm font-medium transition flex-1 sm:flex-none ${
 							view === "all"
 								? "bg-background shadow-sm text-foreground"
 								: "text-muted-foreground hover:text-foreground"
@@ -265,7 +265,7 @@ function ComplianceMemberTable({ members }: { members: ComplianceMember[] }) {
 					<button
 						type="button"
 						onClick={() => setView("onsite")}
-						className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+						className={`px-4 py-2 rounded-lg text-sm font-medium transition flex-1 sm:flex-none ${
 							view === "onsite"
 								? "bg-background shadow-sm text-foreground"
 								: "text-muted-foreground hover:text-foreground"
@@ -278,7 +278,10 @@ function ComplianceMemberTable({ members }: { members: ComplianceMember[] }) {
 			</div>
 
 			{/* Table */}
-			<div className="overflow-x-auto">
+			<div className="overflow-x-auto overscroll-x-contain">
+				<div className="px-4 py-2 text-[11px] text-muted-foreground border-b bg-muted/20 md:hidden">
+					← Geser ke samping untuk melihat seluruh tabel →
+				</div>
 				<table className="w-full border-collapse">
 					<thead>
 						<tr className="bg-muted/40 border-b">
@@ -1111,20 +1114,23 @@ export default function Dashboard() {
 		<main id="dashboard-capture">
 			<div className="space-y-6" ref={dashboardRef}>
 				{/* Header */}
-				<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-					<div>
-						<h1 className="text-3xl font-bold tracking-tight">
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+					<div className="min-w-0">
+						<h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
 							Dashboard Kepatuhan SAP
 						</h1>
-						<p className="text-muted-foreground mt-1">
+
+						<p className="text-sm text-muted-foreground mt-1">
 							Monitoring TTA, Hazard, Inspeksi, Observasi & OPK per anggota
 						</p>
 					</div>
-					<div className="flex flex-col items-end gap-2 shrink-0">
+
+					<div className="flex w-full sm:w-auto flex-col items-stretch sm:items-end gap-2 shrink-0">
 						<Select value={selectedWeek} onValueChange={setSelectedWeek}>
-							<SelectTrigger className="w-[200px]">
+							<SelectTrigger className="w-full sm:w-[200px]">
 								<SelectValue placeholder="Pilih Minggu" />
 							</SelectTrigger>
+
 							<SelectContent>
 								{weeks.map((w) => (
 									<SelectItem key={w.week} value={w.week}>
@@ -1133,15 +1139,21 @@ export default function Dashboard() {
 								))}
 							</SelectContent>
 						</Select>
+
 						{dueDate && daysInfo && (
 							<div
-								className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium
-              ${daysInfo.past ? "border-muted text-muted-foreground" : daysInfo.urgent ? "border-rose-400 bg-rose-500/10 text-rose-600" : "border-emerald-400 bg-emerald-500/10 text-emerald-600"}`}
+								className={`flex w-full sm:w-auto items-center justify-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium ${
+									daysInfo.past
+										? "border-muted text-muted-foreground"
+										: daysInfo.urgent
+											? "border-rose-400 bg-rose-500/10 text-rose-600"
+											: "border-emerald-400 bg-emerald-500/10 text-emerald-600"
+								}`}
 							>
-								<CalendarClock className="h-3 w-3" />
+								<CalendarClock className="h-3 w-3 shrink-0" />
 								<span>Deadline: {formatDate(dueDate)}</span>
 								<span className="opacity-60">•</span>
-								<Clock className="h-3 w-3" />
+								<Clock className="h-3 w-3 shrink-0" />
 								<span>{daysInfo.label}</span>
 							</div>
 						)}
@@ -1161,7 +1173,7 @@ export default function Dashboard() {
 				) : dashboard ? (
 					<>
 						{/* KPI Cards */}
-						<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
 							<Card>
 								<CardContent className="p-5">
 									<div className="flex items-center justify-between mb-3">
@@ -1231,7 +1243,7 @@ export default function Dashboard() {
 							</Card>
 
 							<Card
-								className={`col-span-2 md:col-span-1 ${dashboard.summary.overallPct >= 100 ? "border-emerald-500/40 bg-emerald-500/5" : dashboard.summary.overallPct > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-rose-500/40 bg-rose-500/5"}`}
+								className={`sm:col-span-2 md:col-span-1 ${dashboard.summary.overallPct >= 100 ? "border-emerald-500/40 bg-emerald-500/5" : dashboard.summary.overallPct > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-rose-500/40 bg-rose-500/5"}`}
 							>
 								<CardContent className="p-5">
 									<div className="flex items-center justify-between mb-3">
