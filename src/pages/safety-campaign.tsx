@@ -52,6 +52,15 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { useToast } from "@/hooks/use-toast";
 
+const getSafetyCampaignImageUrl = (filePath: string) => {
+	if (filePath.startsWith("/uploads/")) {
+		const apiUrl = import.meta.env.VITE_API_URL || "";
+		return `${apiUrl.replace(/\/$/, "")}${filePath}`;
+	}
+
+	return filePath;
+};
+
 export default function SafetyCampaign() {
 	const { toast } = useToast();
 	const { data: response, isLoading, isError } = useSafetyCampaigns();
@@ -345,7 +354,7 @@ function CampaignCard({
 					<div className="space-y-4">
 						<div className="flex w-full justify-center rounded-xl bg-muted/30 p-2 sm:p-4">
 							<img
-								src={currentImage.filePath}
+								src={getSafetyCampaignImageUrl(currentImage.filePath)}
 								alt={`${campaign.title} poster`}
 								className="max-h-[620px] w-auto max-w-full rounded-lg object-contain shadow-sm"
 							/>
@@ -365,7 +374,7 @@ function CampaignCard({
 										}`}
 									>
 										<img
-											src={image.filePath}
+											src={getSafetyCampaignImageUrl(image.filePath)}
 											alt={`Poster ${index + 1}`}
 											className="h-full w-full object-cover"
 										/>
@@ -546,7 +555,7 @@ function ManageCampaignImagesDialog({
 										className="group relative overflow-hidden rounded-lg border bg-muted"
 									>
 										<img
-											src={image.filePath}
+											src={getSafetyCampaignImageUrl(image.filePath)}
 											alt={`Poster ${index + 1}`}
 											className="aspect-[3/4] w-full object-cover"
 										/>
@@ -1382,7 +1391,7 @@ function EditCampaignDialog({
 										className="group relative overflow-hidden rounded-lg border bg-muted"
 									>
 										<img
-											src={image.filePath}
+											src={getSafetyCampaignImageUrl(image.filePath)}
 											alt={image.filename}
 											className="aspect-[3/4] w-full object-cover"
 										/>
