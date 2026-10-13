@@ -546,10 +546,19 @@ export default function Summary() {
 		if (!captureRef.current) return;
 
 		try {
-			const dataUrl = await toPng(captureRef.current, {
+			const element = captureRef.current;
+
+			const dataUrl = await toPng(element, {
 				cacheBust: true,
 				pixelRatio: 2,
 				backgroundColor: "#ffffff",
+				style: {
+					width: "1400px",
+					minWidth: "1400px",
+					maxWidth: "1400px",
+					margin: "0 auto",
+					boxSizing: "border-box",
+				},
 			});
 
 			const link = document.createElement("a");
@@ -908,27 +917,26 @@ export default function Summary() {
 							</tbody>
 						</table>
 					</div>
-				</div>
+					{/* Footer */}
+					<div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 text-[8px] text-slate-400">
+						<span>
+							Generated:{" "}
+							{new Date().toLocaleString("id-ID", {
+								day: "2-digit",
+								month: "long",
+								year: "numeric",
+								hour: "2-digit",
+								minute: "2-digit",
+							})}{" "}
+							WIB
+						</span>
 
-				{/* Footer */}
-				<div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 text-[8px] text-slate-400">
-					<span>
-						Generated:{" "}
-						{new Date().toLocaleString("id-ID", {
-							day: "2-digit",
-							month: "long",
-							year: "numeric",
-							hour: "2-digit",
-							minute: "2-digit",
-						})}{" "}
-						WIB
-					</span>
+						<span className="font-medium text-slate-500">
+							SAP Monitoring Dashboard - Provided by HSE Dept. MVM @ 2026
+						</span>
 
-					<span className="font-medium text-slate-500">
-						SAP Monitoring Dashboard - Provided by HSE Dept. MVM @ 2026
-					</span>
-
-					<span>Data berdasarkan minggu aktif ({selectedWeek})</span>
+						<span>Data berdasarkan minggu aktif ({selectedWeek})</span>
+					</div>
 				</div>
 			</div>
 		</div>
