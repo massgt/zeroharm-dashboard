@@ -162,7 +162,7 @@ function OpkItem({ label, item }: { label: string; item?: ComplianceItem }) {
 	const status = getStatusClass(item.pct);
 
 	return (
-		<div className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 bg-muted/30">
+		<div className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 bg-slate-100">
 			<span className="text-[11px] text-muted-foreground truncate">
 				{label}
 			</span>
