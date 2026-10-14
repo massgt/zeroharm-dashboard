@@ -87,7 +87,7 @@ function Metric({ label, item }: { label: string; item: ComplianceItem }) {
 				{item.pct}%
 			</div>
 
-			<div className="mt-0.5 text-center text-[9px] text-slate-500">
+			<div className="mt-0.5 text-center text-[9px] text-slate-700">
 				{item.actual}/{item.target}
 			</div>
 
@@ -109,11 +109,11 @@ function InspectionTimeRow({ member }: { member: SummaryMember }) {
 	if (!compliance || compliance.total === 0 || compliance.pct === null) {
 		return (
 			<div className="flex items-center gap-1.5">
-				<div className="w-[58px] truncate text-[8px] font-medium text-slate-600">
+				<div className="w-[58px] truncate text-[9px] font-medium text-slate-600">
 					{member.name}
 				</div>
 
-				<div className="flex-1 text-[8px] text-slate-400">Tidak ada data</div>
+				<div className="flex-1 text-[9px] text-slate-500">Tidak ada data</div>
 			</div>
 		);
 	}
@@ -139,7 +139,7 @@ function InspectionTimeRow({ member }: { member: SummaryMember }) {
 	return (
 		<div className="flex items-center gap-1.5">
 			<div
-				className="w-[58px] truncate text-[8px] font-medium text-slate-600"
+				className="w-[58px] truncate text-[9px] font-medium text-slate-600"
 				title={member.name}
 			>
 				{member.name}
@@ -157,12 +157,12 @@ function InspectionTimeRow({ member }: { member: SummaryMember }) {
 			</div>
 
 			<div
-				className={`w-[28px] text-right text-[8px] font-bold ${status.text}`}
+				className={`w-[28px] text-right text-[9px] font-bold ${status.text}`}
 			>
 				{pct}%
 			</div>
 
-			<div className="w-[28px] text-right text-[7px] text-slate-400">
+			<div className="w-[28px] text-right text-[9px] text-slate-500">
 				{compliance.sesuai}/{compliance.total}
 			</div>
 		</div>
@@ -177,28 +177,30 @@ function OpkBox({ label, item }: { label: string; item?: ComplianceItem }) {
 
 	return (
 		<div
-			className={`rounded-md border px-2 py-1.5 ${status.bg} ${status.border}`}
+			className={`flex min-w-0 items-center justify-between gap-1.5 rounded-md border px-2 py-1.5 ${status.bg} ${status.border}`}
 		>
-			<div className="flex items-center justify-between gap-1">
-				<span className="truncate text-[9px] font-medium text-slate-600">
-					{label}
+			<div className="flex min-w-0 items-center gap-1.5">
+				<span className="shrink-0">
+					{achieved ? (
+						<CheckCircle2 className="h-3 w-3 text-emerald-600" />
+					) : item.pct > 0 ? (
+						<AlertTriangle className="h-3 w-3 text-amber-600" />
+					) : (
+						<XCircle className="h-3 w-3 text-rose-600" />
+					)}
 				</span>
 
-				{achieved ? (
-					<CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-600" />
-				) : item.pct > 0 ? (
-					<AlertTriangle className="h-3 w-3 shrink-0 text-amber-600" />
-				) : (
-					<XCircle className="h-3 w-3 shrink-0 text-rose-600" />
-				)}
+				<span className="truncate text-[11px] font-medium text-slate-600">
+					{label}
+				</span>
 			</div>
 
-			<div className="mt-0.5 flex items-end justify-between">
-				<span className={`text-[11px] font-bold ${status.text}`}>
+			<div className="flex shrink-0 items-center gap-1">
+				<span className={`text-[11px] font-semibold ${status.text}`}>
 					{item.actual}/{item.target}
 				</span>
 
-				<span className={`text-[10px] font-bold ${status.text}`}>
+				<span className={`text-[11px] font-bold ${status.text}`}>
 					{item.pct}%
 				</span>
 			</div>
@@ -212,15 +214,15 @@ function getOpkItems(member: SummaryMember) {
 	if (member.isHse) {
 		return [
 			{
-				label: "Keberadaan",
+				label: "Sidak Keberadaan Pengawas",
 				item: member.opkKeberadaanPengawas,
 			},
 			{
-				label: "Fungsi",
+				label: "Sidak Fungsi Pengawas",
 				item: member.opkFungsiPengawas,
 			},
 			{
-				label: "Pencahayaan",
+				label: "Sidak Pencahayaan",
 				item: member.opkPencahayaan,
 			},
 		];
@@ -228,27 +230,27 @@ function getOpkItems(member: SummaryMember) {
 
 	return [
 		{
-			label: "P2H",
+			label: "Sidak P2H",
 			item: member.opkP2h,
 		},
 		{
-			label: "Seatbelt",
+			label: "Sidak Seatbelt",
 			item: member.opkSeatbelt,
 		},
 		{
-			label: "SIMPER",
+			label: "Sidak SIMPER",
 			item: member.opkSimper,
 		},
 		{
-			label: "Roster",
+			label: "Sidak Roster",
 			item: member.opkRoster,
 		},
 		{
-			label: "Fatigue",
+			label: "Sidak Fatigue",
 			item: member.opkFatigue,
 		},
 		{
-			label: "LOTOTO",
+			label: "Sidak LOTOTO",
 			item: member.opkLototo,
 		},
 	];
@@ -298,8 +300,8 @@ function MemberRow({
 	const status = statusFor(member.overallPct);
 
 	return (
-		<tr className="border-b border-slate-200 last:border-b-0">
-			<td className="w-[28px] px-2 py-2 align-top text-center text-[9px] font-semibold text-slate-400">
+		<tr className="border-b border-slate-300 last:border-b-0">
+			<td className="w-[28px] px-2 py-2 align-top text-center text-[9px] font-semibold text-slate-600">
 				{index}
 			</td>
 
@@ -308,11 +310,11 @@ function MemberRow({
 					{member.name}
 				</div>
 
-				<div className="mt-0.5 text-[9px] leading-tight text-slate-500">
+				<div className="mt-0.5 text-[9px] leading-tight text-slate-600">
 					{member.jabatan}
 				</div>
 
-				<div className="text-[9px] text-slate-400">{member.nik}</div>
+				<div className="text-[9px] text-slate-600">{member.nik}</div>
 
 				{member.isOnLeave && (
 					<span className="mt-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-500">
@@ -337,14 +339,18 @@ function MemberRow({
 				<Metric label="OBSERVASI" item={member.observasi} />
 			</td>
 
-			<td className="min-w-[480px] px-2 py-2 align-top">
+			<td className="min-w-[480px] px-2 py-1.5 align-top">
 				{member.isPjo ? (
 					<div className="flex min-h-[60px] items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 text-[9px] text-slate-500">
 						<Info className="mr-1.5 h-3 w-3" />
 						Tidak ada target OPK untuk posisi ini
 					</div>
 				) : (
-					<div className="grid grid-cols-6 gap-1.5">
+					<div
+						className={
+							member.isHse ? "grid grid-cols-2 gap-2" : "grid grid-cols-2 gap-2"
+						}
+					>
 						{opkItems.map(({ label, item }) => (
 							<OpkBox key={label} label={label} item={item} />
 						))}
@@ -788,7 +794,6 @@ export default function Summary() {
 					</div>
 
 					{/* Rekap indikator */}
-					{/* Rekap indikator */}
 					<div className="mt-3 grid grid-cols-[1fr_2fr] gap-2">
 						{/* REKAP INDIKATOR */}
 						<div className="rounded-lg border border-slate-200 px-3 py-2.5">
@@ -852,7 +857,7 @@ export default function Summary() {
 									))}
 								</div>
 
-								<div className="mt-1 text-right text-[7px] text-slate-400">
+								<div className="mt-1 text-right text-[8px] text-slate-600">
 									Sesuai / Total Inspeksi
 								</div>
 							</div>
@@ -867,41 +872,41 @@ export default function Summary() {
 
 						<table className="w-full border-collapse">
 							<thead>
-								<tr className="bg-slate-50">
-									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+								<tr className="bg-slate-100">
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
 										NO
 									</th>
 
-									<th className="px-2 py-2 text-left text-[8px] font-bold text-slate-600">
-										NAMA & POSISI / NIK
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
+										NAMA
 									</th>
 
-									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
 										TTA
 									</th>
 
-									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
 										HAZARD
 									</th>
 
-									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
 										INSPEKSI
 									</th>
 
-									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
 										OBSERVASI
 									</th>
 
-									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
 										DETAIL OPK (AKTUAL / TARGET)
 									</th>
 
-									<th className="px-2 py-2 text-center text-[8px] font-bold text-slate-600">
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
 										OVERALL
 									</th>
 
-									<th className="px-2 py-2 text-left text-[8px] font-bold text-slate-600">
-										STATUS & TINDAK LANJUT
+									<th className="px-2 py-2 text-center text-[10px] font-bold text-slate-800">
+										STATUS
 									</th>
 								</tr>
 							</thead>
