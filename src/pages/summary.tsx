@@ -505,13 +505,12 @@ export default function Summary() {
 
 	const lastUploadLabel = lastUpload?.uploadedAt
 		? `${new Date(lastUpload.uploadedAt).toLocaleString("id-ID", {
-				timeZone: "Asia/Jakarta",
 				day: "2-digit",
 				month: "long",
 				year: "numeric",
 				hour: "2-digit",
 				minute: "2-digit",
-			})} WIB`
+			})} WITA`
 		: "Belum ada data upload";
 
 	const { data: weeks, isLoading: loadingWeeks } = useListWeeks({
