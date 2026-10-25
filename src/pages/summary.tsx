@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	useGetDashboard,
 	useListWeeks,
+	useListUploads,
 	getGetDashboardQueryKey,
 	getListWeeksQueryKey,
+	getListUploadsQueryKey,
 } from "@/api-client";
 import type { MemberProgress } from "@/api-client";
 import { toPng } from "html-to-image";
@@ -483,6 +485,35 @@ function getDaysLabel(dueDate: Date): {
 export default function Summary() {
 	const captureRef = useRef<HTMLDivElement>(null);
 
+	const { data: uploads } = useListUploads({
+		query: {
+			queryKey: getListUploadsQueryKey(),
+		},
+	});
+
+	const lastUpload = uploads?.reduce<(typeof uploads)[number] | null>(
+		(latest, upload) => {
+			if (!latest) return upload;
+
+			return new Date(upload.uploadedAt).getTime() >
+				new Date(latest.uploadedAt).getTime()
+				? upload
+				: latest;
+		},
+		null,
+	);
+
+	const lastUploadLabel = lastUpload?.uploadedAt
+		? `${new Date(lastUpload.uploadedAt).toLocaleString("id-ID", {
+				timeZone: "Asia/Jakarta",
+				day: "2-digit",
+				month: "long",
+				year: "numeric",
+				hour: "2-digit",
+				minute: "2-digit",
+			})} WIB`
+		: "Belum ada data upload";
+
 	const { data: weeks, isLoading: loadingWeeks } = useListWeeks({
 		query: {
 			queryKey: getListWeeksQueryKey(),
@@ -924,7 +955,7 @@ export default function Summary() {
 					</div>
 					{/* Footer */}
 					<div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 text-[8px] text-slate-400">
-						<span>
+						{/* <span>
 							Generated:{" "}
 							{new Date().toLocaleString("id-ID", {
 								day: "2-digit",
@@ -934,7 +965,8 @@ export default function Summary() {
 								minute: "2-digit",
 							})}{" "}
 							WIB
-						</span>
+						</span> */}
+						<span>Last Data Update: {lastUploadLabel}</span>
 
 						<span className="font-medium text-slate-500">
 							SAP Monitoring Dashboard - Provided by HSE Dept. MVM @ 2026
