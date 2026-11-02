@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { customFetch } from "./custom-fetch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { customFetch } from "./custom-fetch";
 
 export interface SafetyCampaignImage {
 	id: number;
@@ -251,8 +251,8 @@ export function useSafetyCampaign(id: number) {
 export function useCreateSafetyCampaign() {
 	const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: createSafetyCampaign,
+	return useMutation<SafetyCampaign, Error, CreateSafetyCampaignInput>({
+		mutationFn: (data: CreateSafetyCampaignInput) => createSafetyCampaign(data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({
 				queryKey: getSafetyCampaignsQueryKey(),

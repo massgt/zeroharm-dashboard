@@ -11,6 +11,7 @@ import {
 	FileBarChart,
 	Megaphone,
 	Menu,
+	BookOpen,
 } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -30,6 +31,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 		{ href: "/members", icon: Users, label: "Kelola Anggota" },
 		{ href: "/safety-campaign", icon: Megaphone, label: "Safety Campaign" },
 		{ href: "/summary", icon: FileBarChart, label: "Summary" },
+		{ href: "/sosialisasi", icon: BookOpen, label: "Sosialisasi IBPR & GR" },
 	];
 
 	return (

@@ -1153,6 +1153,9 @@ function EditCampaignDialog({
 
 	const handleSave = async () => {
 		try {
+			if (!campaign) {
+				return;
+			}
 			if (!title.trim()) {
 				toast({
 					title: "Judul wajib diisi",
@@ -1225,6 +1228,9 @@ function EditCampaignDialog({
 	};
 
 	const handleDeleteImage = async (imageId: number) => {
+		if (!campaign) {
+			return;
+		}
 		const confirmed = window.confirm(
 			"Apakah kamu yakin ingin menghapus poster ini?",
 		);

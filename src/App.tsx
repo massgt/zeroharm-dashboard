@@ -9,6 +9,7 @@ import Members from "@/pages/members";
 import NotFound from "@/pages/not-found";
 import Summary from "@/pages/summary";
 import SafetyCampaign from "@/pages/safety-campaign";
+import Sosialisasi from "@/pages/sosialisasi";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ function Router() {
 			<Route path="/members" component={Members} />
 			<Route path="/summary" component={Summary} />
 			<Route path="/safety-campaign" component={SafetyCampaign} />
+			<Route path="/sosialisasi" component={Sosialisasi} />
 			<Route component={NotFound} />
 		</Switch>
 	);

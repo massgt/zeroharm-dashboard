@@ -15,15 +15,56 @@ export interface TeamMember {
 	department: string;
 	jabatan: string;
 	isPjo: boolean;
+	isHse: boolean;
 	isOnLeave: boolean;
+	isActive: boolean;
+	targetTta: number;
 	targetHazard: number;
 	targetInspeksi: number;
 	targetObservasi: number;
-	targetOpk: number;
+	targetOpkKeberadaanPengawas: number;
+	targetOpkFungsiPengawas: number;
+	targetOpkP2h: number;
+	targetOpkSeatbelt: number;
+	isSapParticipant: boolean;
+	targetOpkSimper: number;
+	targetOpkRoster: number;
+	targetOpkFatigue: number;
+	targetOpkLototo: number;
 }
 
 export interface SetLeaveBody {
 	isOnLeave: boolean;
+}
+
+export interface SetActiveBody {
+	isActive: boolean;
+}
+
+export interface SetActiveResponse {
+	nik: string;
+	isActive: boolean;
+}
+
+export interface UpdateMemberBody {
+	name?: string;
+	department?: string;
+	jabatan?: string;
+	isPjo?: boolean;
+	isHse?: boolean;
+	isOnLeave?: boolean;
+	targetTta?: number;
+	targetHazard?: number;
+	targetInspeksi?: number;
+	targetObservasi?: number;
+	targetOpkKeberadaanPengawas?: number;
+	targetOpkFungsiPengawas?: number;
+	targetOpkP2h?: number;
+	targetOpkSeatbelt?: number;
+	targetOpkSimper?: number;
+	targetOpkRoster?: number;
+	targetOpkFatigue?: number;
+	targetOpkLototo?: number;
 }
 
 export interface TeamMemberInput {
@@ -32,10 +73,19 @@ export interface TeamMemberInput {
 	department: string;
 	jabatan: string;
 	isPjo: boolean;
+	isHse: boolean;
+	targetTta: number;
 	targetHazard: number;
 	targetInspeksi: number;
 	targetObservasi: number;
-	targetOpk: number;
+	targetOpkKeberadaanPengawas: number;
+	targetOpkFungsiPengawas: number;
+	targetOpkP2h: number;
+	targetOpkSeatbelt: number;
+	targetOpkSimper: number;
+	targetOpkRoster: number;
+	targetOpkFatigue: number;
+	targetOpkLototo: number;
 }
 
 export interface ExcelUpload {

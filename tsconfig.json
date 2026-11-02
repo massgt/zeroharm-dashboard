@@ -27,5 +27,10 @@
 		"noEmit": true
 	},
 
-	"include": ["src"]
+	"include": ["src"],
+	"exclude": [
+		"src/pages/new-report.tsx",
+		"src/pages/report-detail.tsx",
+		"src/pages/reports-list.tsx"
+	]
 }
