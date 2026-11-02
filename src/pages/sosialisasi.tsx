@@ -263,6 +263,7 @@ function AttendanceDetail({
 }
 
 export default function Sosialisasi() {
+	const apiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 	const [selectedPeriod, setSelectedPeriod] = useState("");
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState("all");
@@ -276,7 +277,7 @@ export default function Sosialisasi() {
 	} = useQuery({
 		queryKey: ["sosialisasi-periods"],
 		queryFn: async () => {
-			const response = await fetch("/api/sosialisasi/periods");
+			const response = await fetch(`${apiUrl}/api/sosialisasi/periods`);
 			if (!response.ok) throw new Error("Gagal mengambil daftar periode.");
 			return response.json();
 		},
@@ -304,7 +305,7 @@ export default function Sosialisasi() {
 		queryKey: ["sosialisasi-dashboard", selectedYear, selectedMonth],
 		queryFn: async () => {
 			const response = await fetch(
-				`/api/sosialisasi/dashboard?year=${selectedYear}&month=${selectedMonth}`,
+				`${apiUrl}/api/sosialisasi/dashboard?year=${selectedYear}&month=${selectedMonth}`,
 			);
 
 			if (!response.ok) {
