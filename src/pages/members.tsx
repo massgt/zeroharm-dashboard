@@ -242,11 +242,13 @@ export default function Members() {
 		return members.filter((member) => {
 			if (!member.isActive) return false;
 
-			// Identifikasi Pengawas berdasarkan jabatan
-			const isPengawas = member.jabatan.toLowerCase().includes("pengawas");
+			// Identifikasi Pengawas berdasarkan konfigurasi peserta SAP
+			const isPengawas =
+				member.isSapParticipant && !member.isPjo && !member.isHse;
 
-			// Hanya PJO, HSE, dan Pengawas yang masuk PIC SAP
-			const isPicSap = member.isPjo || member.isHse || isPengawas;
+			// Hanya peserta SAP yang masuk dalam PIC SAP
+			const isPicSap =
+				member.isSapParticipant && (member.isPjo || member.isHse || isPengawas);
 
 			if (!isPicSap) return false;
 
