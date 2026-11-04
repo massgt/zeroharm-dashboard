@@ -76,6 +76,7 @@ const memberFormSchema = z.object({
 	// HSE OPK
 	targetOpkKeberadaanPengawas: z.coerce.number().min(0).default(0),
 	targetOpkFungsiPengawas: z.coerce.number().min(0).default(0),
+	targetOpkPencahayaan: z.coerce.number().min(0).default(0),
 	// Pengawas OPK
 	targetOpkP2h: z.coerce.number().min(0).default(0),
 	targetOpkSeatbelt: z.coerce.number().min(0).default(0),
@@ -101,15 +102,17 @@ const defaultTargets = {
 		targetOpkSimper: 0,
 		targetOpkRoster: 0,
 		targetOpkFatigue: 0,
+		targetOpkPencahayaan: 0,
 		targetOpkLototo: 0,
 	},
 	hse: {
-		targetTta: 0,
+		targetTta: 2,
 		targetHazard: 7,
 		targetInspeksi: 7,
 		targetObservasi: 4,
 		targetOpkKeberadaanPengawas: 10,
 		targetOpkFungsiPengawas: 10,
+		targetOpkPencahayaan: 1,
 		targetOpkP2h: 0,
 		targetOpkSeatbelt: 0,
 		targetOpkSimper: 0,
@@ -118,12 +121,13 @@ const defaultTargets = {
 		targetOpkLototo: 0,
 	},
 	pengawas: {
-		targetTta: 0,
+		targetTta: 2,
 		targetHazard: 7,
 		targetInspeksi: 7,
 		targetObservasi: 4,
 		targetOpkKeberadaanPengawas: 0,
 		targetOpkFungsiPengawas: 0,
+		targetOpkPencahayaan: 0,
 		targetOpkP2h: 5,
 		targetOpkSeatbelt: 5,
 		targetOpkSimper: 10,
@@ -144,6 +148,7 @@ const defaultTargets = {
 		targetOpkRoster: 0,
 		targetOpkFatigue: 0,
 		targetOpkLototo: 0,
+		targetOpkPencahayaan: 0,
 	},
 };
 
@@ -359,6 +364,7 @@ export default function Members() {
 			targetObservasi: member.targetObservasi,
 			targetOpkKeberadaanPengawas: member.targetOpkKeberadaanPengawas,
 			targetOpkFungsiPengawas: member.targetOpkFungsiPengawas,
+			targetOpkPencahayaan: member.targetOpkPencahayaan ?? 0,
 			targetOpkP2h: member.targetOpkP2h,
 			targetOpkSeatbelt: member.targetOpkSeatbelt,
 			targetOpkSimper: member.targetOpkSimper,
@@ -805,15 +811,22 @@ export default function Members() {
 																		variant="outline"
 																		className="text-[10px] px-2 py-0.5"
 																	>
-																		Pengawas:{" "}
+																		Keberadaan Pengawas:{" "}
 																		{member.targetOpkKeberadaanPengawas ?? 0}
 																	</Badge>
 																	<Badge
 																		variant="outline"
 																		className="text-[10px] px-2 py-0.5"
 																	>
-																		Fungsi:{" "}
+																		Fungsi Pengawas:{" "}
 																		{member.targetOpkFungsiPengawas ?? 0}
+																	</Badge>
+																	<Badge
+																		variant="outline"
+																		className="text-[10px] px-2 py-0.5"
+																	>
+																		Pencahayaan:{" "}
+																		{member.targetOpkPencahayaan ?? 0}
 																	</Badge>
 																</>
 															) : (
@@ -1182,7 +1195,7 @@ export default function Members() {
 															</p>
 														</div>
 														{watchHse ? (
-															<div className="grid grid-cols-2 gap-4">
+															<div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
 																<div className="rounded-lg border bg-muted/20 p-3">
 																	<TargetInput
 																		control={form.control}
@@ -1195,6 +1208,13 @@ export default function Members() {
 																		control={form.control}
 																		name="targetOpkFungsiPengawas"
 																		label="Fungsi Pengawas"
+																	/>
+																</div>
+																<div className="rounded-lg border bg-muted/20 p-3">
+																	<TargetInput
+																		control={form.control}
+																		name="targetOpkPencahayaan"
+																		label="Sidak Pencahayaan"
 																	/>
 																</div>
 															</div>

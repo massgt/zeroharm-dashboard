@@ -24,6 +24,7 @@ export interface TeamMember {
 	targetObservasi: number;
 	targetOpkKeberadaanPengawas: number;
 	targetOpkFungsiPengawas: number;
+	targetOpkPencahayaan: number;
 	targetOpkP2h: number;
 	targetOpkSeatbelt: number;
 	isSapParticipant: boolean;
@@ -59,6 +60,7 @@ export interface UpdateMemberBody {
 	targetObservasi?: number;
 	targetOpkKeberadaanPengawas?: number;
 	targetOpkFungsiPengawas?: number;
+	targetOpkPencahayaan?: number;
 	targetOpkP2h?: number;
 	targetOpkSeatbelt?: number;
 	targetOpkSimper?: number;
@@ -80,6 +82,7 @@ export interface TeamMemberInput {
 	targetObservasi: number;
 	targetOpkKeberadaanPengawas: number;
 	targetOpkFungsiPengawas: number;
+	targetOpkPencahayaan: number;
 	targetOpkP2h: number;
 	targetOpkSeatbelt: number;
 	targetOpkSimper: number;
