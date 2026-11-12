@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { ShieldCheck, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/auth/auth-context";
@@ -14,9 +14,9 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  if (!loading && isAdmin) {
-    setLocation("/");
-  }
+  useEffect(() => {
+    if (!loading && isAdmin) setLocation("/");
+  }, [loading, isAdmin, setLocation]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
