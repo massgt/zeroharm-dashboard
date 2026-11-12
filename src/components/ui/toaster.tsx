@@ -24,7 +24,7 @@ export function Toaster() {
           <Toast
             key={id}
             {...props}
-            duration={isAuthSuccess ? 3200 : props.duration}
+            duration={isAuthSuccess ? 1800 : props.duration}
             className={
               isAuthSuccess
                 ? "auth-success-toast pointer-events-auto relative flex w-full max-w-[380px] flex-col items-center gap-3 overflow-hidden rounded-2xl border border-emerald-100 bg-white px-8 py-7 text-center shadow-2xl"
@@ -49,14 +49,13 @@ export function Toaster() {
               )}
             </div>
             {action}
-            {isAuthSuccess && <div className="auth-success-progress" aria-hidden="true" />}
           </Toast>
         )
       })}
       <ToastViewport
         className={
           hasAuthSuccess
-            ? "auth-success-viewport fixed inset-0 z-[100] flex h-full w-full max-w-none items-center justify-center p-4 pointer-events-none before:fixed before:inset-0 before:z-[-1] before:bg-slate-950/35 before:backdrop-blur-[2px] sm:bottom-auto sm:right-auto sm:top-0 sm:flex-col"
+            ? "auth-success-viewport !fixed !inset-0 !bottom-0 !right-0 !top-0 !z-[100] !flex !h-screen !w-screen !max-w-none !translate-x-0 !translate-y-0 !flex-col !items-center !justify-center !p-4 pointer-events-none"
             : undefined
         }
       />
