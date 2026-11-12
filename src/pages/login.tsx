@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useLocation, Link } from "wouter";
 import { ShieldCheck, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/auth/auth-context";
