@@ -214,7 +214,10 @@
   .auth-success-toast[data-state="open"],
   .auth-success-toast[data-state="closed"],
   .auth-success-icon,
-  .auth-success-check,
+  .auth-success-check {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
 }
 
 
