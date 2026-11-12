@@ -56,7 +56,7 @@ export function Toaster() {
       <ToastViewport
         className={
           hasAuthSuccess
-            ? "fixed inset-0 z-[100] flex h-full w-full max-w-none items-center justify-center p-4 pointer-events-none before:fixed before:inset-0 before:z-[-1] before:bg-slate-950/35 before:backdrop-blur-[2px] sm:bottom-auto sm:right-auto sm:top-0 sm:flex-col"
+            ? "auth-success-viewport fixed inset-0 z-[100] flex h-full w-full max-w-none items-center justify-center p-4 pointer-events-none before:fixed before:inset-0 before:z-[-1] before:bg-slate-950/35 before:backdrop-blur-[2px] sm:bottom-auto sm:right-auto sm:top-0 sm:flex-col"
             : undefined
         }
       />
