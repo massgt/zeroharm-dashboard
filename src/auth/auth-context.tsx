@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { customFetch } from "@/api-client";
+import { customFetch } from "@/api-client/custom-fetch";
 
 type AuthState = {
   role: "admin" | "viewer";
