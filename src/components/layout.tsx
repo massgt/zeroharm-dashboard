@@ -1,6 +1,5 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
-import { LogIn, LogOut } from "lucide-react";
 import { useAuth } from "@/auth/auth-context";
 import {
 	Shield,
@@ -14,6 +13,8 @@ import {
 	Megaphone,
 	Menu,
 	BookOpen,
+	LogIn,
+	LogOut,
 } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -506,10 +507,8 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 								<LogOut className="h-4 w-4" /><span className="hidden sm:inline">Logout</span>
 							</Button>
 						) : (
-							<Link href="/login">
-								<Button variant="outline" size="sm" className="gap-2">
-									<LogIn className="h-4 w-4" /><span>Login Admin</span>
-								</Button>
+							<Link href="/login" className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+								<LogIn className="h-4 w-4" /><span>Login Admin</span>
 							</Link>
 						)}
 					</div>
