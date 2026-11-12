@@ -1,4 +1,5 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import type { ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,7 +16,7 @@ import Login from "@/pages/login";
 
 const queryClient = new QueryClient();
 
-function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+function AdminRoute({ component: Component }: { component: ComponentType }) {
   const { isAdmin, loading } = useAuth();
   if (loading) return <div className="p-8 text-sm text-muted-foreground">Memeriksa sesi...</div>;
   return isAdmin ? <Component /> : <Redirect to="/" />;
