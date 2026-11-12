@@ -129,7 +129,7 @@ export default function SafetyCampaign() {
 	if (isError) {
 		return (
 			<div className="space-y-6">
-				<PageHeader onAdd={() => setShowCreateDialog(true)} />
+				<PageHeader canManage={isAdmin} onAdd={() => setShowCreateDialog(true)} />
 
 				<Card>
 					<CardContent className="py-12 text-center text-destructive">
@@ -142,7 +142,7 @@ export default function SafetyCampaign() {
 
 	return (
 		<div className="space-y-6">
-			<PageHeader onAdd={() => setShowCreateDialog(true)} />
+			<PageHeader canManage={isAdmin} onAdd={() => setShowCreateDialog(true)} />
 
 			{/* Empty state */}
 			{campaigns.length === 0 && (
