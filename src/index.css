@@ -161,3 +161,77 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+
+/* Centered success modal for Administrator login/logout */
+.auth-success-toast[data-state="open"] {
+  animation: auth-success-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.auth-success-toast[data-state="closed"] {
+  animation: auth-success-exit 220ms ease-in both;
+}
+
+.auth-success-icon {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border: 5px solid #d1fae5;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  color: #059669;
+  animation: auth-success-pop 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 100ms both;
+}
+
+.auth-success-check {
+  stroke-dasharray:  30;
+  stroke-dashoffset: 30;
+  animation: auth-check-draw 520ms ease-out 260ms forwards;
+}
+
+.auth-success-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: #d1fae5;
+  transform-origin: left;
+  animation: auth-success-countdown 3200ms linear forwards;
+}
+
+@keyframes auth-success-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes auth-success-exit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.97); }
+}
+
+@keyframes auth-success-pop {
+  0% { opacity: 0; transform: scale(0.65); }
+  70% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes auth-check-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes auth-success-countdown {
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-success-toast[data-state="open"],
+  .auth-success-toast[data-state="closed"],
+  .auth-success-icon,
+  .auth-success-check,
+  .auth-success-progress {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+}
