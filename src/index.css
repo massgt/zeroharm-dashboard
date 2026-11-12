@@ -235,3 +235,12 @@
     animation-delay: 0ms !important;
   }
 }
+
+
+.auth-success-viewport:has(.auth-success-toast[data-state="closed"])::before {
+  animation: auth-success-backdrop-exit 220ms ease-in forwards;
+}
+
+@keyframes auth-success-backdrop-exit {
+  to { opacity: 0; }
+}
