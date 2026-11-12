@@ -6,8 +6,10 @@ import { useAuth } from "@/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import CompanyLogo from "@/assets/LogoMVM2.png";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
+  const { toast } = useToast();
   const { login, isAdmin, loading } = useAuth();
   const [, setLocation] = useLocation();
   const [password, setPassword] = useState("");
@@ -25,6 +27,10 @@ export default function Login() {
     setSubmitting(true);
     try {
       await login(password);
+      toast({
+        title: "Login berhasil",
+        description: "Selamat datang, Administrator.",
+      });
       setLocation("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal. Periksa koneksi dan coba lagi.");
