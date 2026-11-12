@@ -19,6 +19,7 @@ import {
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 import CompanyLogo from "../assets/LogoMVM.png";
 import CompanyLogoExpanded from "../assets/LogoMVM2.png";
@@ -28,6 +29,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
 	const [location] = useLocation();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const { isAdmin, logout } = useAuth();
+	const { toast } = useToast();
+
+	const handleLogout = async () => {
+		try {
+			await logout();
+			toast({
+				title: "Logout berhasil",
+				description: "Anda telah keluar dari sesi Administrator.",
+			});
+		} catch (error) {
+			toast({
+				title: "Logout belum terkonfirmasi",
+				description: error instanceof Error ? error.message : "Terjadi kesalahan saat mengakhiri sesi Administrator.",
+				variant: "destructive",
+			});
+		}
+	};
 
 	const navItems = [
 		{ href: "/", icon: Activity, label: "Dashboard" },
@@ -503,7 +521,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 							<Settings className="h-5 w-5" />
 						</Button>
 						{isAdmin ? (
-							<Button variant="outline" size="sm" onClick={() => void logout()} className="gap-2">
+							<Button variant="outline" size="sm" onClick={() => void handleLogout()} className="gap-2">
 								<LogOut className="h-4 w-4" /><span className="hidden sm:inline">Logout</span>
 							</Button>
 						) : (
