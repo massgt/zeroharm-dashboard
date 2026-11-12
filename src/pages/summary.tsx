@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
 	useGetDashboard,
 	useListWeeks,
-	useListUploads,
 	getGetDashboardQueryKey,
 	getListWeeksQueryKey,
-	getListUploadsQueryKey,
 } from "@/api-client";
+import { customFetch } from "@/api-client/custom-fetch";
 import type { MemberProgress } from "@/api-client";
 import { toPng } from "html-to-image";
 import {
@@ -485,26 +485,17 @@ function getDaysLabel(dueDate: Date): {
 export default function Summary() {
 	const captureRef = useRef<HTMLDivElement>(null);
 
-	const { data: uploads } = useListUploads({
-		query: {
-			queryKey: getListUploadsQueryKey(),
-		},
+	const { data: latestUpload } = useQuery({
+		queryKey: ["/api/uploads/latest"],
+		queryFn: () =>
+			customFetch<{ uploadedAt: string | null }>("/api/uploads/latest", {
+				method: "GET",
+				responseType: "json",
+			}),
 	});
 
-	const lastUpload = uploads?.reduce<(typeof uploads)[number] | null>(
-		(latest, upload) => {
-			if (!latest) return upload;
-
-			return new Date(upload.uploadedAt).getTime() >
-				new Date(latest.uploadedAt).getTime()
-				? upload
-				: latest;
-		},
-		null,
-	);
-
-	const lastUploadLabel = lastUpload?.uploadedAt
-		? `${new Date(lastUpload.uploadedAt).toLocaleString("id-ID", {
+	const lastUploadLabel = latestUpload?.uploadedAt
+		? `${new Date(latestUpload.uploadedAt).toLocaleString("id-ID", {
 				day: "2-digit",
 				month: "long",
 				year: "numeric",

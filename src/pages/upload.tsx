@@ -151,6 +151,7 @@ export default function UploadData() {
 					`${apiUrl}/api/upload/excel-chunk-url`,
 					{
 						method: "POST",
+						credentials: "include",
 						headers: {
 							"Content-Type": "application/json",
 						},
@@ -191,6 +192,7 @@ export default function UploadData() {
 				`${apiUrl}/api/upload/excel-chunked`,
 				{
 					method: "POST",
+					credentials: "include",
 					headers: {
 						"Content-Type": "application/json",
 					},
@@ -266,6 +268,7 @@ export default function UploadData() {
 
 			const response = await fetch(`${apiUrl}/api/upload/google-sheet`, {
 				method: "POST",
+				credentials: "include",
 				headers: {
 					"Content-Type": "application/json",
 				},
@@ -332,8 +335,10 @@ export default function UploadData() {
 		setDeletingUploadId(uploadId);
 
 		try {
-			const response = await fetch(`/api/uploads/${uploadId}`, {
+			const apiUrl = import.meta.env.VITE_API_URL || "";
+			const response = await fetch(`${apiUrl}/api/uploads/${uploadId}`, {
 				method: "DELETE",
+				credentials: "include",
 			});
 
 			const result = await response.json();

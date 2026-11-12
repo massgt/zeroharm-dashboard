@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
+import { useAuth } from "@/auth/auth-context";
 import {
 	Shield,
 	Activity,
@@ -12,10 +13,13 @@ import {
 	Megaphone,
 	Menu,
 	BookOpen,
+	LogIn,
+	LogOut,
 } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 import CompanyLogo from "../assets/LogoMVM.png";
 import CompanyLogoExpanded from "../assets/LogoMVM2.png";
@@ -24,11 +28,31 @@ import userLogo from "@/assets/user.png";
 export function Layout({ children }: { children: React.ReactNode }) {
 	const [location] = useLocation();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const { isAdmin, logout } = useAuth();
+	const { toast } = useToast();
+
+	const handleLogout = async () => {
+		try {
+			await logout();
+			toast({
+				title: "Logout berhasil",
+				description: "Anda telah keluar dari sesi Administrator.",
+			});
+		} catch (error) {
+			toast({
+				title: "Logout belum terkonfirmasi",
+				description: error instanceof Error ? error.message : "Terjadi kesalahan saat mengakhiri sesi Administrator.",
+				variant: "destructive",
+			});
+		}
+	};
 
 	const navItems = [
 		{ href: "/", icon: Activity, label: "Dashboard" },
-		{ href: "/upload", icon: Upload, label: "Upload Data" },
-		{ href: "/members", icon: Users, label: "Kelola Anggota" },
+		...(isAdmin ? [
+			{ href: "/upload", icon: Upload, label: "Upload Data" },
+			{ href: "/members", icon: Users, label: "Kelola Anggota" },
+		] : []),
 		{ href: "/safety-campaign", icon: Megaphone, label: "Safety Campaign" },
 		{ href: "/summary", icon: FileBarChart, label: "Summary" },
 		{ href: "/sosialisasi", icon: BookOpen, label: "Sosialisasi IBPR & GR" },
@@ -354,10 +378,10 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
                 duration-200
               "
 						>
-							<div className="text-sm font-medium truncate">John Doe</div>
+							<div className="text-sm font-medium truncate">{isAdmin ? "Administrator" : "Viewer"}</div>
 
 							<div className="text-xs text-sidebar-foreground/60 truncate">
-								HSE Manager
+								{isAdmin ? "Akses Admin" : "Akses baca saja"}
 							</div>
 						</div>
 					</div>
@@ -496,6 +520,15 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 						>
 							<Settings className="h-5 w-5" />
 						</Button>
+						{isAdmin ? (
+							<Button variant="outline" size="sm" onClick={() => void handleLogout()} className="gap-2">
+								<LogOut className="h-4 w-4" /><span className="hidden sm:inline">Logout</span>
+							</Button>
+						) : (
+							<Link href="/login" className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+								<LogIn className="h-4 w-4" /><span>Login Admin</span>
+							</Link>
+						)}
 					</div>
 				</header>
 

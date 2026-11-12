@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "@/auth/auth-context";
 
 import {
 	useSafetyCampaigns,
@@ -63,6 +64,7 @@ const getSafetyCampaignImageUrl = (filePath: string) => {
 
 export default function SafetyCampaign() {
 	const { toast } = useToast();
+	const { isAdmin } = useAuth();
 	const { data: response, isLoading, isError } = useSafetyCampaigns();
 
 	const campaigns = response?.data ?? [];
@@ -113,7 +115,7 @@ export default function SafetyCampaign() {
 	if (isLoading) {
 		return (
 			<div className="space-y-6">
-				<PageHeader onAdd={() => setShowCreateDialog(true)} />
+				<PageHeader canManage={isAdmin} onAdd={() => setShowCreateDialog(true)} />
 
 				<Card>
 					<CardContent className="py-12 text-center text-muted-foreground">
@@ -127,7 +129,7 @@ export default function SafetyCampaign() {
 	if (isError) {
 		return (
 			<div className="space-y-6">
-				<PageHeader onAdd={() => setShowCreateDialog(true)} />
+				<PageHeader canManage={isAdmin} onAdd={() => setShowCreateDialog(true)} />
 
 				<Card>
 					<CardContent className="py-12 text-center text-destructive">
@@ -140,7 +142,7 @@ export default function SafetyCampaign() {
 
 	return (
 		<div className="space-y-6">
-			<PageHeader onAdd={() => setShowCreateDialog(true)} />
+			<PageHeader canManage={isAdmin} onAdd={() => setShowCreateDialog(true)} />
 
 			{/* Empty state */}
 			{campaigns.length === 0 && (
@@ -156,10 +158,10 @@ export default function SafetyCampaign() {
 							Tambahkan campaign keselamatan untuk mulai menampilkan poster.
 						</p>
 
-						<Button className="mt-5" onClick={() => setShowCreateDialog(true)}>
+						{isAdmin && <Button className="mt-5" onClick={() => setShowCreateDialog(true)}>
 							<Plus className="mr-2 h-4 w-4" />
 							Tambah Campaign
-						</Button>
+						</Button>}
 					</CardContent>
 				</Card>
 			)}
@@ -170,13 +172,14 @@ export default function SafetyCampaign() {
 					<CampaignCard
 						key={campaign.id}
 						campaign={campaign}
+						isAdmin={isAdmin}
 						onEdit={setEditingCampaign}
 						onManagePosters={setManagingCampaign}
 						onDelete={setDeletingCampaign}
 					/>
 				))}
 			</div>
-			<EditCampaignDialog
+			{isAdmin && <EditCampaignDialog
 				campaign={editingCampaign}
 				open={editingCampaign !== null}
 				onOpenChange={(open) => {
@@ -184,17 +187,17 @@ export default function SafetyCampaign() {
 						setEditingCampaign(null);
 					}
 				}}
-			/>
+			/>}
 
-			<ManageCampaignImagesDialog
+			{isAdmin && <ManageCampaignImagesDialog
 				campaign={managingCampaign}
 				open={!!managingCampaign}
 				onOpenChange={(open) => {
 					if (!open) setManagingCampaign(null);
 				}}
-			/>
+			/>}
 
-			<DeleteCampaignDialog
+			{isAdmin && <DeleteCampaignDialog
 				campaign={deletingCampaign}
 				open={deletingCampaign !== null}
 				onOpenChange={(open) => {
@@ -204,17 +207,17 @@ export default function SafetyCampaign() {
 				}}
 				onConfirm={handleDeleteCampaign}
 				isDeleting={deleteCampaign.isPending}
-			/>
+			/>}
 
-			<CreateCampaignDialog
+			{isAdmin && <CreateCampaignDialog
 				open={showCreateDialog}
 				onOpenChange={setShowCreateDialog}
-			/>
+			/>}
 		</div>
 	);
 }
 
-function PageHeader({ onAdd }: { onAdd: () => void }) {
+function PageHeader({ canManage, onAdd }: { canManage: boolean; onAdd: () => void }) {
 	return (
 		<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 			<div className="min-w-0">
@@ -231,21 +234,23 @@ function PageHeader({ onAdd }: { onAdd: () => void }) {
 				</p>
 			</div>
 
-			<Button onClick={onAdd} className="w-full sm:w-auto shrink-0">
+			{canManage && <Button onClick={onAdd} className="w-full sm:w-auto shrink-0">
 				<Plus className="mr-2 h-4 w-4" />
 				Tambah Campaign
-			</Button>
+			</Button>}
 		</div>
 	);
 }
 
 function CampaignCard({
 	campaign,
+	isAdmin,
 	onEdit,
 	onManagePosters,
 	onDelete,
 }: {
 	campaign: SafetyCampaign;
+	isAdmin: boolean;
 	onEdit: (campaign: SafetyCampaign) => void;
 	onManagePosters: (campaign: SafetyCampaign) => void;
 	onDelete: (campaign: SafetyCampaign) => void;
@@ -306,7 +311,7 @@ function CampaignCard({
 							<ImageIcon className="h-4 w-4 shrink-0" />
 							{images.length} poster
 						</div>
-						<DropdownMenu>
+						{isAdmin && <DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
 									type="button"
@@ -340,7 +345,7 @@ function CampaignCard({
 									Hapus Campaign
 								</DropdownMenuItem>
 							</DropdownMenuContent>
-						</DropdownMenu>
+						</DropdownMenu>}
 					</div>
 				</div>
 			</CardHeader>
