@@ -48,6 +48,46 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+type UploadStageStatus = "pending" | "processing" | "completed" | "failed";
+
+type UploadStage = {
+	id: string;
+	label: string;
+	status: UploadStageStatus;
+};
+
+const INITIAL_UPLOAD_STAGES: UploadStage[] = [
+	{
+		id: "read",
+		label: "Membaca sumber data",
+		status: "pending",
+	},
+	{
+		id: "parse",
+		label: "Validasi dan parsing",
+		status: "pending",
+	},
+	{
+		id: "reconcile",
+		label: "Rekonsiliasi data",
+		status: "pending",
+	},
+	{
+		id: "insert_sap",
+		label: "Menyimpan data SAP",
+		status: "pending",
+	},
+	{
+		id: "insert_attendance",
+		label: "Menyimpan data Attendance",
+		status: "pending",
+	},
+	{
+		id: "finalize",
+		label: "Finalisasi upload",
+		status: "pending",
+	},
+];
 
 export default function UploadData() {
 	const { toast } = useToast();
@@ -59,6 +99,19 @@ export default function UploadData() {
 	const [isUploading, setIsUploading] = useState(false);
 	const [googleSheetUrl, setGoogleSheetUrl] = useState("");
 	const [isImportingGoogle, setIsImportingGoogle] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState(0);
+
+	const [uploadStatus, setUploadStatus] = useState<
+		"idle" | "processing" | "completed" | "failed"
+	>("idle");
+
+	const [uploadMessage, setUploadMessage] = useState("");
+
+	const [uploadStages, setUploadStages] = useState<UploadStage[]>(
+		INITIAL_UPLOAD_STAGES,
+	);
+
+	const [showUploadDetails, setShowUploadDetails] = useState(false);
 	const [successDialogOpen, setSuccessDialogOpen] = useState(false);
 	const [successTitle, setSuccessTitle] = useState("");
 	const [successDescription, setSuccessDescription] = useState("");
@@ -141,6 +194,17 @@ export default function UploadData() {
 
 		setIsUploading(true);
 
+		setUploadProgress(0);
+		setUploadStatus("processing");
+		setUploadMessage("Menyiapkan file Excel...");
+		setUploadStages(
+			INITIAL_UPLOAD_STAGES.map((stage) => ({
+				...stage,
+				status: "pending",
+			})),
+		);
+		setShowUploadDetails(false);
+
 		try {
 			for (let index = 0; index < totalChunks; index++) {
 				const start = index * CHUNK_SIZE;
@@ -185,6 +249,19 @@ export default function UploadData() {
 						`Gagal mengupload chunk ${index + 1} dari ${totalChunks}`,
 					);
 				}
+
+				const chunkProgress = Math.round(((index + 1) / totalChunks) * 4);
+
+				setUploadProgress(chunkProgress);
+				setUploadMessage(
+					`Mengupload file Excel... (${index + 1}/${totalChunks} bagian)`,
+				);
+
+				setUploadStages((previous) =>
+					previous.map((stage) =>
+						stage.id === "read" ? { ...stage, status: "processing" } : stage,
+					),
+				);
 			}
 
 			// 3. Kirim daftar chunk ke backend untuk diproses
@@ -209,7 +286,72 @@ export default function UploadData() {
 				throw new Error(errorText || "Gagal memproses file Excel");
 			}
 
-			const result = await processResponse.json();
+			if (!processResponse.body) {
+				throw new Error("Browser tidak mendukung streaming response.");
+			}
+
+			const reader = processResponse.body.getReader();
+			const decoder = new TextDecoder();
+
+			let buffer = "";
+			let result: any = null;
+
+			const handleProgressMessage = (data: any) => {
+				if (data.event === "error") {
+					throw new Error(data.error || "Upload Excel gagal.");
+				}
+
+				if (data.event === "complete") {
+					result = data;
+					return;
+				}
+
+				if (typeof data.progress === "number") {
+					setUploadProgress(data.progress);
+					setUploadMessage(data.message || "Memproses data...");
+
+					setUploadStages((previous) =>
+						previous.map((stage) =>
+							stage.id === data.stageId
+								? { ...stage, status: data.stageStatus }
+								: stage,
+						),
+					);
+				}
+			};
+
+			while (true) {
+				const { done, value } = await reader.read();
+
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+
+				const lines = buffer.split("\n");
+				buffer = lines.pop() ?? "";
+
+				for (const line of lines) {
+					if (!line.trim()) continue;
+
+					handleProgressMessage(JSON.parse(line));
+				}
+			}
+
+			buffer += decoder.decode();
+
+			if (buffer.trim()) {
+				handleProgressMessage(JSON.parse(buffer));
+			}
+
+			if (!result) {
+				throw new Error(
+					"Proses upload berakhir tanpa konfirmasi keberhasilan.",
+				);
+			}
+
+			setUploadProgress(100);
+			setUploadStatus("completed");
+			setUploadMessage("Upload Excel berhasil.");
 
 			setSuccessTitle("Upload Berhasil");
 			setSuccessDescription(
@@ -237,6 +379,19 @@ export default function UploadData() {
 			});
 		} catch (error) {
 			console.error("Upload Excel gagal:", error);
+			setUploadStatus("failed");
+
+			setUploadMessage(
+				error instanceof Error ? error.message : "Upload Excel gagal.",
+			);
+
+			setUploadStages((previous) =>
+				previous.map((stage) =>
+					stage.status === "processing"
+						? { ...stage, status: "failed" }
+						: stage,
+				),
+			);
 
 			toast({
 				title: "Upload Gagal",
@@ -263,6 +418,17 @@ export default function UploadData() {
 
 		setIsImportingGoogle(true);
 
+		setUploadProgress(0);
+		setUploadStatus("processing");
+		setUploadMessage("Menghubungkan ke Google Sheet...");
+		setUploadStages(
+			INITIAL_UPLOAD_STAGES.map((stage) => ({
+				...stage,
+				status: "pending",
+			})),
+		);
+		setShowUploadDetails(false);
+
 		try {
 			const apiUrl = import.meta.env.VITE_API_URL || "";
 
@@ -277,11 +443,96 @@ export default function UploadData() {
 				}),
 			});
 
-			const result = await response.json();
-
 			if (!response.ok) {
-				throw new Error(result.error || "Import Google Sheet gagal");
+				const errorText = await response.text();
+				throw new Error(errorText || "Import Google Sheet gagal");
 			}
+
+			if (!response.body) {
+				throw new Error("Browser tidak mendukung streaming response.");
+			}
+
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+
+			let buffer = "";
+			let result: any = null;
+
+			while (true) {
+				const { done, value } = await reader.read();
+
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+
+				const lines = buffer.split("\n");
+				buffer = lines.pop() ?? "";
+
+				for (const line of lines) {
+					if (!line.trim()) continue;
+
+					const data = JSON.parse(line);
+
+					if (data.event === "error") {
+						throw new Error(data.error || "Import Google Sheet gagal");
+					}
+
+					if (data.event === "complete") {
+						result = data;
+						continue;
+					}
+
+					if (typeof data.progress === "number") {
+						setUploadProgress(data.progress);
+						setUploadMessage(data.message || "Memproses data...");
+
+						setUploadStages((previous) =>
+							previous.map((stage) =>
+								stage.id === data.stageId
+									? { ...stage, status: data.stageStatus }
+									: stage,
+							),
+						);
+					}
+				}
+			}
+
+			buffer += decoder.decode();
+
+			if (buffer.trim()) {
+				const data = JSON.parse(buffer);
+
+				if (data.event === "error") {
+					throw new Error(data.error || "Import Google Sheet gagal");
+				}
+
+				if (data.event === "complete") {
+					result = data;
+				}
+
+				if (typeof data.progress === "number") {
+					setUploadProgress(data.progress);
+					setUploadMessage(data.message || "Memproses data...");
+
+					setUploadStages((previous) =>
+						previous.map((stage) =>
+							stage.id === data.stageId
+								? { ...stage, status: data.stageStatus }
+								: stage,
+						),
+					);
+				}
+			}
+
+			if (!result) {
+				throw new Error(
+					"Proses upload berakhir tanpa konfirmasi keberhasilan.",
+				);
+			}
+
+			setUploadProgress(100);
+			setUploadStatus("completed");
+			setUploadMessage("Upload Google Sheet berhasil.");
 
 			setSuccessTitle("Import Google Sheet Berhasil");
 			setSuccessDescription(
@@ -305,6 +556,18 @@ export default function UploadData() {
 			});
 		} catch (error) {
 			console.error("Google Sheet import error:", error);
+			setUploadStatus("failed");
+			setUploadMessage(
+				error instanceof Error ? error.message : "Upload Google Sheet gagal.",
+			);
+
+			setUploadStages((previous) =>
+				previous.map((stage) =>
+					stage.status === "processing"
+						? { ...stage, status: "failed" }
+						: stage,
+				),
+			);
 
 			toast({
 				title: "Import Google Sheet Gagal",
@@ -383,6 +646,102 @@ export default function UploadData() {
 		}
 	};
 
+	const renderUploadProgress = () => (
+		<div className="mt-3 w-full rounded-lg border border-border bg-card p-3 space-y-2 text-left">
+			<div className="flex items-center justify-between gap-2">
+				<span className="text-sm font-semibold">Uploading Data</span>
+
+				<span
+					className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+						uploadStatus === "completed"
+							? "bg-emerald-500/10 text-emerald-600"
+							: uploadStatus === "failed"
+								? "bg-red-500/10 text-red-600"
+								: "bg-blue-500/10 text-blue-600"
+					}`}
+				>
+					{uploadStatus === "completed"
+						? "Completed"
+						: uploadStatus === "failed"
+							? "Failed"
+							: "Processing"}
+				</span>
+			</div>
+
+			<div className="relative h-8 w-full overflow-hidden rounded-full bg-muted">
+				<div
+					className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
+						uploadStatus === "failed" ? "bg-red-500" : "bg-emerald-600"
+					}`}
+					style={{ width: `${uploadProgress}%` }}
+				/>
+
+				<div className="absolute inset-0 flex items-center justify-center">
+					<span
+						className={`text-xs font-bold ${
+							uploadProgress >= 35 ? "text-white" : "text-foreground"
+						}`}
+					>
+						{uploadProgress}%
+					</span>
+				</div>
+			</div>
+
+			<div className="flex items-center justify-between gap-2">
+				<p className="min-w-0 text-xs text-muted-foreground">{uploadMessage}</p>
+
+				<button
+					type="button"
+					onClick={() => setShowUploadDetails((previous) => !previous)}
+					className="shrink-0 text-xs font-semibold hover:text-primary"
+				>
+					Detail Process
+					<span className="ml-1 inline-block transition-transform">
+						{showUploadDetails ? "⌃" : "⌄"}
+					</span>
+				</button>
+			</div>
+
+			{showUploadDetails && (
+				<div className="border-t pt-3 space-y-2">
+					{uploadStages.map((stage, index) => (
+						<div
+							key={stage.id}
+							className="flex items-center justify-between gap-2"
+						>
+							<div className="flex items-center gap-2 min-w-0">
+								<span className="w-4 text-xs text-muted-foreground">
+									{index + 1}
+								</span>
+								<span className="text-xs font-medium">{stage.label}</span>
+							</div>
+
+							<span
+								className={`shrink-0 rounded-full px-2 py-1 text-xs ${
+									stage.status === "completed"
+										? "bg-emerald-500/10 text-emerald-600"
+										: stage.status === "processing"
+											? "bg-blue-500/10 text-blue-600"
+											: stage.status === "failed"
+												? "bg-red-500/10 text-red-600"
+												: "bg-muted text-muted-foreground"
+								}`}
+							>
+								{stage.status === "completed"
+									? "Selesai"
+									: stage.status === "processing"
+										? "Berjalan"
+										: stage.status === "failed"
+											? "Gagal"
+											: "Menunggu"}
+							</span>
+						</div>
+					))}
+				</div>
+			)}
+		</div>
+	);
+
 	return (
 		<div className="space-y-6">
 			<div className="min-w-0">
@@ -394,7 +753,6 @@ export default function UploadData() {
 					Import data Safety Accountability Program dari BIB
 				</p>
 			</div>
-
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 				{/* =========================
 	    UPLOAD EXCEL
@@ -467,23 +825,18 @@ export default function UploadData() {
 							</div>
 						</div>
 
-						<Button
-							onClick={handleUpload}
-							disabled={!selectedFile || isUploading}
-							className="mt-4 w-full"
-						>
-							{isUploading ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Mengupload & memproses...
-								</>
-							) : (
-								<>
-									<Upload className="mr-2 h-4 w-4" />
-									Upload File Excel
-								</>
-							)}
-						</Button>
+						{isUploading ? (
+							renderUploadProgress()
+						) : (
+							<Button
+								onClick={handleUpload}
+								disabled={!selectedFile || isUploading}
+								className="mt-4 w-full"
+							>
+								<Upload className="mr-2 h-4 w-4" />
+								Upload File Excel
+							</Button>
+						)}
 
 						<div className="mt-3 rounded-md bg-slate-50 px-3 py-2.5 text-[11px] leading-relaxed text-slate-500">
 							<span className="font-medium text-slate-700">Catatan:</span>{" "}
@@ -539,24 +892,19 @@ export default function UploadData() {
 								/>
 							</div>
 
-							<Button
-								onClick={handleGoogleImport}
-								disabled={!googleSheetUrl.trim() || isImportingGoogle}
-								className="mt-3 w-full"
-								variant="default"
-							>
-								{isImportingGoogle ? (
-									<>
-										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-										Mengimport & memproses...
-									</>
-								) : (
-									<>
-										<CloudDownload className="mr-2 h-4 w-4" />
-										Import Google Sheet
-									</>
-								)}
-							</Button>
+							{isImportingGoogle ? (
+								renderUploadProgress()
+							) : (
+								<Button
+									onClick={handleGoogleImport}
+									disabled={!googleSheetUrl.trim() || isImportingGoogle}
+									className="mt-3 w-full"
+									variant="default"
+								>
+									<CloudDownload className="mr-2 h-4 w-4" />
+									Import Google Sheet
+								</Button>
+							)}
 						</div>
 
 						<div className="mt-3 rounded-md bg-blue-50 px-3 py-2.5 text-[11px] leading-relaxed text-blue-700">
