@@ -115,7 +115,10 @@ export default function SafetyCampaign() {
 	if (isLoading) {
 		return (
 			<div className="space-y-6">
-				<PageHeader canManage={isAdmin} onAdd={() => setShowCreateDialog(true)} />
+				<PageHeader
+					canManage={isAdmin}
+					onAdd={() => setShowCreateDialog(true)}
+				/>
 
 				<Card>
 					<CardContent className="py-12 text-center text-muted-foreground">
@@ -129,7 +132,10 @@ export default function SafetyCampaign() {
 	if (isError) {
 		return (
 			<div className="space-y-6">
-				<PageHeader canManage={isAdmin} onAdd={() => setShowCreateDialog(true)} />
+				<PageHeader
+					canManage={isAdmin}
+					onAdd={() => setShowCreateDialog(true)}
+				/>
 
 				<Card>
 					<CardContent className="py-12 text-center text-destructive">
@@ -158,10 +164,15 @@ export default function SafetyCampaign() {
 							Tambahkan campaign keselamatan untuk mulai menampilkan poster.
 						</p>
 
-						{isAdmin && <Button className="mt-5" onClick={() => setShowCreateDialog(true)}>
-							<Plus className="mr-2 h-4 w-4" />
-							Tambah Campaign
-						</Button>}
+						{isAdmin && (
+							<Button
+								className="mt-5"
+								onClick={() => setShowCreateDialog(true)}
+							>
+								<Plus className="mr-2 h-4 w-4" />
+								Tambah Campaign
+							</Button>
+						)}
 					</CardContent>
 				</Card>
 			)}
@@ -179,45 +190,59 @@ export default function SafetyCampaign() {
 					/>
 				))}
 			</div>
-			{isAdmin && <EditCampaignDialog
-				campaign={editingCampaign}
-				open={editingCampaign !== null}
-				onOpenChange={(open) => {
-					if (!open) {
-						setEditingCampaign(null);
-					}
-				}}
-			/>}
+			{isAdmin && (
+				<EditCampaignDialog
+					campaign={editingCampaign}
+					open={editingCampaign !== null}
+					onOpenChange={(open) => {
+						if (!open) {
+							setEditingCampaign(null);
+						}
+					}}
+				/>
+			)}
 
-			{isAdmin && <ManageCampaignImagesDialog
-				campaign={managingCampaign}
-				open={!!managingCampaign}
-				onOpenChange={(open) => {
-					if (!open) setManagingCampaign(null);
-				}}
-			/>}
+			{isAdmin && (
+				<ManageCampaignImagesDialog
+					campaign={managingCampaign}
+					open={!!managingCampaign}
+					onOpenChange={(open) => {
+						if (!open) setManagingCampaign(null);
+					}}
+				/>
+			)}
 
-			{isAdmin && <DeleteCampaignDialog
-				campaign={deletingCampaign}
-				open={deletingCampaign !== null}
-				onOpenChange={(open) => {
-					if (!open) {
-						setDeletingCampaign(null);
-					}
-				}}
-				onConfirm={handleDeleteCampaign}
-				isDeleting={deleteCampaign.isPending}
-			/>}
+			{isAdmin && (
+				<DeleteCampaignDialog
+					campaign={deletingCampaign}
+					open={deletingCampaign !== null}
+					onOpenChange={(open) => {
+						if (!open) {
+							setDeletingCampaign(null);
+						}
+					}}
+					onConfirm={handleDeleteCampaign}
+					isDeleting={deleteCampaign.isPending}
+				/>
+			)}
 
-			{isAdmin && <CreateCampaignDialog
-				open={showCreateDialog}
-				onOpenChange={setShowCreateDialog}
-			/>}
+			{isAdmin && (
+				<CreateCampaignDialog
+					open={showCreateDialog}
+					onOpenChange={setShowCreateDialog}
+				/>
+			)}
 		</div>
 	);
 }
 
-function PageHeader({ canManage, onAdd }: { canManage: boolean; onAdd: () => void }) {
+function PageHeader({
+	canManage,
+	onAdd,
+}: {
+	canManage: boolean;
+	onAdd: () => void;
+}) {
 	return (
 		<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 			<div className="min-w-0">
@@ -234,10 +259,12 @@ function PageHeader({ canManage, onAdd }: { canManage: boolean; onAdd: () => voi
 				</p>
 			</div>
 
-			{canManage && <Button onClick={onAdd} className="w-full sm:w-auto shrink-0">
-				<Plus className="mr-2 h-4 w-4" />
-				Tambah Campaign
-			</Button>}
+			{canManage && (
+				<Button onClick={onAdd} className="w-full sm:w-auto shrink-0">
+					<Plus className="mr-2 h-4 w-4" />
+					Tambah Campaign
+				</Button>
+			)}
 		</div>
 	);
 }
@@ -291,7 +318,7 @@ function CampaignCard({
 						</CardTitle>
 
 						{campaign.highlight && (
-							<p className="mt-2 max-w-3xl break-words text-sm text-muted-foreground">
+							<p className="text-sm text-muted-foreground whitespace-pre-line">
 								{campaign.highlight}
 							</p>
 						)}
@@ -311,41 +338,43 @@ function CampaignCard({
 							<ImageIcon className="h-4 w-4 shrink-0" />
 							{images.length} poster
 						</div>
-						{isAdmin && <DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									type="button"
-									variant="outline"
-									size="icon"
-									className="h-10 w-10"
-									aria-label="Campaign actions"
-								>
-									<MoreVertical className="h-5 w-5" />
-								</Button>
-							</DropdownMenuTrigger>
+						{isAdmin && (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										variant="outline"
+										size="icon"
+										className="h-10 w-10"
+										aria-label="Campaign actions"
+									>
+										<MoreVertical className="h-5 w-5" />
+									</Button>
+								</DropdownMenuTrigger>
 
-							<DropdownMenuContent align="end" className="w-48">
-								<DropdownMenuItem onClick={() => onEdit(campaign)}>
-									<Pencil className="mr-2 h-4 w-4" />
-									Edit Campaign
-								</DropdownMenuItem>
+								<DropdownMenuContent align="end" className="w-48">
+									<DropdownMenuItem onClick={() => onEdit(campaign)}>
+										<Pencil className="mr-2 h-4 w-4" />
+										Edit Campaign
+									</DropdownMenuItem>
 
-								<DropdownMenuItem onClick={() => onManagePosters(campaign)}>
-									<ImageIcon className="mr-2 h-4 w-4" />
-									Kelola Poster
-								</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => onManagePosters(campaign)}>
+										<ImageIcon className="mr-2 h-4 w-4" />
+										Kelola Poster
+									</DropdownMenuItem>
 
-								<DropdownMenuSeparator />
+									<DropdownMenuSeparator />
 
-								<DropdownMenuItem
-									className="text-destructive focus:text-destructive"
-									onClick={() => onDelete(campaign)}
-								>
-									<Trash2 className="mr-2 h-4 w-4" />
-									Hapus Campaign
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>}
+									<DropdownMenuItem
+										className="text-destructive focus:text-destructive"
+										onClick={() => onDelete(campaign)}
+									>
+										<Trash2 className="mr-2 h-4 w-4" />
+										Hapus Campaign
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						)}
 					</div>
 				</div>
 			</CardHeader>
