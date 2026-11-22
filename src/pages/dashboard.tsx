@@ -767,7 +767,7 @@ function SafetyCampaignDashboard({
 							</p>
 
 							{campaign.highlight && (
-								<p className="mt-1 text-xs text-muted-foreground">
+								<p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
 									{campaign.highlight}
 								</p>
 							)}
