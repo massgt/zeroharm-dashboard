@@ -325,6 +325,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 								</div>
 							</Link>
 							</div>
+							</div>
 						);
 					})}
 				</div>
