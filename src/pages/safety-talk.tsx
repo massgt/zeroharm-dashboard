@@ -505,7 +505,7 @@ export default function SafetyTalk() {
 					<div className="flex items-start gap-2 rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
 						<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
 						<p>
-							Pencapaian dihitung dari jumlah keikutsertaan Safety Talk dibandingkan target 4 kali per personel per bulan. Rincian W menunjukkan jumlah keikutsertaan pada masing-masing minggu. Personel cuti tetap ditampilkan untuk Administrator, tetapi tidak dihitung dalam overall achievement.
+							Pencapaian dihitung dari jumlah keikutsertaan Safety Talk dibandingkan target 4 kali per personel per bulan. Rincian W menunjukkan jumlah keikutsertaan pada masing-masing minggu. Personel cuti tetap ditampilkan beserta progress keikutsertaannya dan diberi penanda merah. Personel cuti tidak dihitung dalam overall achievement maupun pencapaian tim.
 						</p>
 					</div>
 				</>
