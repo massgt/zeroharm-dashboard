@@ -34,6 +34,7 @@ type SafetyTalkEmployee = {
 	target: number;
 	totalCount: number;
 	totalProgress: number;
+	weekly: { week: string; count: number; progress: number }[];
 	status: "Complete" | "Partial" | "Belum" | "Cuti";
 };
 
@@ -41,6 +42,7 @@ type DashboardResponse = {
 	success: boolean;
 	period: Period;
 	targetPerMonth: number;
+	weeks: string[];
 	lastUpdate: {
 		uploadedAt: string;
 		filename: string;
@@ -54,6 +56,7 @@ type DashboardResponse = {
 		partial: number;
 		belum: number;
 		achievement: number;
+		weeklyAchievement: { week: string; achievement: number }[];
 		totalEvents: number;
 		uniqueNiks: number;
 	};
@@ -478,15 +481,34 @@ export default function SafetyTalk() {
 								<span>Target bulanan: 4 kali per personel.</span>
 							</div>
 
-							<div className="overflow-x-auto">
-								<table className="w-full min-w-[850px] border-collapse text-sm">
+			<div className="overflow-x-auto">
+								<table className="w-full min-w-[1050px] border-collapse text-sm">
 									<thead>
 										<tr className="border-b bg-muted/40 text-left">
 											<th className="px-4 py-3">Karyawan</th>
 											<th className="px-4 py-3">Departemen</th>
 											<th className="px-4 py-3 text-center">Target Bulanan</th>
-											<th className="px-4 py-3">Realisasi & Progress</th>
+											<th className="px-4 py-3">Realisasi Bulanan</th>
+											{dashboard.weeks.map((week) => (
+												<th key={week} className="min-w-[112px] px-3 py-3 text-center">
+													Minggu {week}
+												</th>
+											))}
 											<th className="px-4 py-3 text-center">Status</th>
+										</tr>
+										<tr className="border-b bg-primary/5">
+											<td colSpan={4} className="px-4 py-2 text-xs font-semibold text-muted-foreground">
+												Rata-rata ketercapaian personel onsite per minggu
+											</td>
+											{dashboard.weeks.map((week) => {
+												const achievement = summary.weeklyAchievement.find((item) => item.week === week)?.achievement ?? 0;
+												return (
+													<td key={week} className="px-3 py-2 text-center font-bold">
+														<span className={getProgressColor(achievement).text}>{Math.round(achievement)}%</span>
+													</td>
+												);
+											})}
+											<td className="px-4 py-2 text-center text-xs text-muted-foreground">Rata-rata</td>
 										</tr>
 									</thead>
 									<tbody>
@@ -507,22 +529,23 @@ export default function SafetyTalk() {
 														</div>
 													)}
 												</td>
-												<td className="px-4 py-4 text-xs text-muted-foreground">
-													{employee.department || "-"}
-												</td>
-												<td className="px-4 py-4 text-center font-medium">
-													{employee.target} kali
-												</td>
+												<td className="px-4 py-4 text-xs text-muted-foreground">{employee.department || "-"}</td>
+												<td className="px-4 py-4 text-center font-medium">{employee.target} kali</td>
 												<td className="px-4 py-4">
-													<ProgressMetric
-														value={employee.totalProgress}
-														count={employee.totalCount}
-														target={employee.target}
-													/>
+													<ProgressMetric value={employee.totalProgress} count={employee.totalCount} target={employee.target} />
 												</td>
-												<td className="px-4 py-4 text-center">
-													<StatusBadge status={employee.status} />
-												</td>
+												{dashboard.weeks.map((week) => {
+													const item = employee.weekly.find((entry) => entry.week === week);
+													const count = item?.count ?? 0;
+													const progress = item?.progress ?? 0;
+													return (
+														<td key={week} className="px-3 py-4 text-center">
+															<div className={`font-semibold ${getProgressColor(progress).text}`}>{Math.round(progress)}%</div>
+															<div className="text-[10px] text-muted-foreground">{count} kali</div>
+														</td>
+													);
+												})}
+												<td className="px-4 py-4 text-center"><StatusBadge status={employee.status} /></td>
 											</tr>
 										))}
 									</tbody>
@@ -546,11 +569,7 @@ export default function SafetyTalk() {
 					<div className="flex items-start gap-2 rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
 						<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
 						<p>
-							Progress dihitung dari total keikutsertaan Safety Talk pada bulan
-							terpilih dibandingkan target 4 kali per personel. Setiap
-							keikutsertaan setara 25%, dan pencapaian dibatasi maksimal 100%.
-							Personel cuti tetap ditampilkan untuk Administrator, tetapi tidak
-							dihitung dalam denominator pencapaian tim.
+							Progress bulanan dihitung dari akumulasi keikutsertaan Safety Talk dibandingkan target 4 kali per personel. Kolom mingguan menunjukkan kontribusi setiap minggu terhadap target bulanan (25% per keikutsertaan), sedangkan baris rata-rata menunjukkan rata-rata ketercapaian personel onsite pada minggu tersebut. Personel cuti tetap ditampilkan untuk Administrator, tetapi tidak dihitung dalam rata-rata pencapaian tim.
 						</p>
 					</div>
 				</>
