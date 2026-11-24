@@ -12,6 +12,7 @@ import NotFound from "@/pages/not-found";
 import Summary from "@/pages/summary";
 import SafetyCampaign from "@/pages/safety-campaign";
 import Sosialisasi from "@/pages/sosialisasi";
+import SafetyTalk from "@/pages/safety-talk";
 import Login from "@/pages/login";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/summary" component={Summary} />
       <Route path="/safety-campaign" component={SafetyCampaign} />
       <Route path="/sosialisasi" component={Sosialisasi} />
+      <Route path="/safety-talk" component={SafetyTalk} />
       <Route component={NotFound} />
     </Switch>
   );
