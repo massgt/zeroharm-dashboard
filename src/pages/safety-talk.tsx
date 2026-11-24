@@ -102,33 +102,29 @@ function getProgressColor(value: number) {
 	};
 }
 
-function ProgressMetric({
-	value,
+function AchievementMetric({
 	count,
 	target,
+	progress,
+	weekly,
 }: {
-	value: number;
 	count: number;
 	target: number;
+	progress: number;
+	weekly: { week: string; count: number }[];
 }) {
-	const color = getProgressColor(value);
-
+	const color = getProgressColor(progress);
 	return (
-		<div className="min-w-[150px] space-y-1.5">
-			<div className="flex items-center justify-between gap-2">
-				<span className="text-xs text-muted-foreground">
-					{formatNumber(count)} dari {target} kali
-				</span>
-				<span className={`text-xs font-bold ${color.text}`}>
-					{Math.round(value)}%
-				</span>
+		<div className="min-w-[190px]">
+			<div className="flex items-center gap-3">
+				<span className="text-sm font-semibold">{count} dari {target} kali</span>
+				<span className={`text-sm font-bold ${color.text}`}>{Math.round(progress)}%</span>
 			</div>
-			<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-				<div
-					className={`h-full rounded-full transition-all ${color.bar}`}
-					style={{ width: `${Math.min(100, value)}%` }}
-				/>
-			</div>
+			<p className="mt-1 text-[11px] text-muted-foreground">
+				{weekly.length
+					? weekly.map((item) => `W${item.week}: ${item.count}`).join(" • ")
+					: "Belum ada keikutsertaan"}
+			</p>
 		</div>
 	);
 }
@@ -343,68 +339,41 @@ export default function SafetyTalk() {
 						<Card>
 							<CardContent className="p-5">
 								<div className="flex items-center justify-between">
-									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-										Karyawan Aktif
-									</p>
+									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Karyawan Aktif</p>
 									<Users className="h-5 w-5 text-muted-foreground" />
 								</div>
-								<div className="mt-3 text-3xl font-bold">
-									{formatNumber(summary.totalActive)}
-								</div>
-								<p className="mt-2 text-xs text-muted-foreground">
-									Termasuk personel cuti
-								</p>
+								<div className="mt-3 text-3xl font-bold">{formatNumber(summary.totalActive)}</div>
+								<p className="mt-2 text-xs text-muted-foreground">Termasuk personel cuti</p>
 							</CardContent>
 						</Card>
-
-						<Card>
+						<Card className="border-emerald-500/30 bg-emerald-500/5">
 							<CardContent className="p-5">
 								<div className="flex items-center justify-between">
-									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-										Memenuhi Target
-									</p>
+									<p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Overall Achievement</p>
 									<CheckCircle2 className="h-5 w-5 text-emerald-600" />
 								</div>
-								<div className="mt-3 text-3xl font-bold">
-									{summary.complete} / {summary.eligibleEmployees}
-								</div>
-								<p className="mt-2 text-xs text-muted-foreground">
-									{summary.achievement}% dari personel onsite
-								</p>
+								<div className="mt-3 text-3xl font-bold text-emerald-600">{summary.achievement}%</div>
+								<p className="mt-2 text-xs text-emerald-700/80">{summary.complete} dari {summary.eligibleEmployees} personel memenuhi target</p>
 							</CardContent>
 						</Card>
-
-						<Card>
+						<Card className="border-blue-500/30 bg-blue-500/5">
 							<CardContent className="p-5">
 								<div className="flex items-center justify-between">
-									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-										Total Keikutsertaan
-									</p>
-									<Activity className="h-5 w-5 text-primary" />
+									<p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Total Keikutsertaan</p>
+									<Activity className="h-5 w-5 text-blue-600" />
 								</div>
-								<div className="mt-3 text-3xl font-bold">
-									{formatNumber(summary.totalEvents)}
-								</div>
-								<p className="mt-2 text-xs text-muted-foreground">
-									{formatNumber(summary.uniqueNiks)} personel tercatat
-								</p>
+								<div className="mt-3 text-3xl font-bold text-blue-600">{formatNumber(summary.totalEvents)}</div>
+								<p className="mt-2 text-xs text-blue-700/80">{formatNumber(summary.uniqueNiks)} personel tercatat</p>
 							</CardContent>
 						</Card>
-
-						<Card>
+						<Card className="border-amber-500/30 bg-amber-500/5">
 							<CardContent className="p-5">
 								<div className="flex items-center justify-between">
-									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-										Sedang Cuti
-									</p>
+									<p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Sedang Cuti</p>
 									<PlaneTakeoff className="h-5 w-5 text-amber-600" />
 								</div>
-								<div className="mt-3 text-3xl font-bold">
-									{formatNumber(summary.excludedOnLeave)}
-								</div>
-								<p className="mt-2 text-xs text-muted-foreground">
-									Dikecualikan dari pencapaian tim
-								</p>
+								<div className="mt-3 text-3xl font-bold text-amber-600">{formatNumber(summary.excludedOnLeave)}</div>
+								<p className="mt-2 text-xs text-amber-700/80">Dikecualikan dari pencapaian tim</p>
 							</CardContent>
 						</Card>
 					</div>
@@ -482,84 +451,41 @@ export default function SafetyTalk() {
 							</div>
 
 			<div className="overflow-x-auto">
-								<table className="w-full min-w-[1050px] border-collapse text-sm">
+								<table className="w-full min-w-[760px] border-collapse text-sm">
 									<thead>
 										<tr className="border-b bg-muted/40 text-left">
 											<th className="px-4 py-3">Karyawan</th>
 											<th className="px-4 py-3">Departemen</th>
-											<th className="px-4 py-3 text-center">Target Bulanan</th>
-											<th className="px-4 py-3">Realisasi Bulanan</th>
-											{dashboard.weeks.map((week) => (
-												<th key={week} className="min-w-[112px] px-3 py-3 text-center">
-													Minggu {week}
-												</th>
-											))}
+											<th className="px-4 py-3">Pencapaian Safety Talk</th>
 											<th className="px-4 py-3 text-center">Status</th>
-										</tr>
-										<tr className="border-b bg-primary/5">
-											<td colSpan={4} className="px-4 py-2 text-xs font-semibold text-muted-foreground">
-												Rata-rata ketercapaian personel onsite per minggu
-											</td>
-											{dashboard.weeks.map((week) => {
-												const achievement = summary.weeklyAchievement.find((item) => item.week === week)?.achievement ?? 0;
-												return (
-													<td key={week} className="px-3 py-2 text-center font-bold">
-														<span className={getProgressColor(achievement).text}>{Math.round(achievement)}%</span>
-													</td>
-												);
-											})}
-											<td className="px-4 py-2 text-center text-xs text-muted-foreground">Rata-rata</td>
 										</tr>
 									</thead>
 									<tbody>
 										{filteredEmployees.map((employee) => (
-											<tr
-												key={employee.nik ?? employee.name}
-												className={`border-b hover:bg-muted/20 ${
-													employee.status === "Cuti"
-														? "bg-rose-50/50 dark:bg-rose-950/10"
-														: ""
-												}`}
-											>
+											<tr key={employee.nik ?? employee.name} className={`border-b hover:bg-muted/20 ${employee.status === "Cuti" ? "bg-rose-50/50 dark:bg-rose-950/10" : ""}`}>
 												<td className="px-4 py-4">
 													<div className="font-medium">{employee.name}</div>
-													{employee.nik && (
-														<div className="text-[11px] text-muted-foreground">
-															{employee.nik} • {employee.jabatan}
-														</div>
-													)}
+													{employee.nik && <div className="text-[11px] text-muted-foreground">{employee.nik}{employee.jabatan ? ` • ${employee.jabatan}` : ""}</div>}
 												</td>
 												<td className="px-4 py-4 text-xs text-muted-foreground">{employee.department || "-"}</td>
-												<td className="px-4 py-4 text-center font-medium">{employee.target} kali</td>
 												<td className="px-4 py-4">
-													<ProgressMetric value={employee.totalProgress} count={employee.totalCount} target={employee.target} />
+													<AchievementMetric
+														count={employee.totalCount}
+														target={employee.target}
+														progress={employee.totalProgress}
+														weekly={employee.weekly}
+													/>
 												</td>
-												{dashboard.weeks.map((week) => {
-													const item = employee.weekly.find((entry) => entry.week === week);
-													const count = item?.count ?? 0;
-													const progress = item?.progress ?? 0;
-													return (
-														<td key={week} className="px-3 py-4 text-center">
-															<div className={`font-semibold ${getProgressColor(progress).text}`}>{Math.round(progress)}%</div>
-															<div className="text-[10px] text-muted-foreground">{count} kali</div>
-														</td>
-													);
-												})}
 												<td className="px-4 py-4 text-center"><StatusBadge status={employee.status} /></td>
 											</tr>
 										))}
 									</tbody>
 								</table>
-
 								{filteredEmployees.length === 0 && (
 									<div className="px-6 py-12 text-center">
 										<Search className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-										<p className="text-sm font-medium">
-											Data karyawan tidak ditemukan
-										</p>
-										<p className="mt-1 text-xs text-muted-foreground">
-											Coba ubah kata kunci atau filter pencarian.
-										</p>
+										<p className="text-sm font-medium">Data karyawan tidak ditemukan</p>
+										<p className="mt-1 text-xs text-muted-foreground">Coba ubah kata kunci atau filter pencarian.</p>
 									</div>
 								)}
 							</div>
@@ -569,7 +495,7 @@ export default function SafetyTalk() {
 					<div className="flex items-start gap-2 rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
 						<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
 						<p>
-							Progress bulanan dihitung dari akumulasi keikutsertaan Safety Talk dibandingkan target 4 kali per personel. Kolom mingguan menunjukkan kontribusi setiap minggu terhadap target bulanan (25% per keikutsertaan), sedangkan baris rata-rata menunjukkan rata-rata ketercapaian personel onsite pada minggu tersebut. Personel cuti tetap ditampilkan untuk Administrator, tetapi tidak dihitung dalam rata-rata pencapaian tim.
+							Pencapaian dihitung dari jumlah keikutsertaan Safety Talk dibandingkan target 4 kali per personel per bulan. Rincian W menunjukkan jumlah keikutsertaan pada masing-masing minggu. Personel cuti tetap ditampilkan untuk Administrator, tetapi tidak dihitung dalam overall achievement.
 						</p>
 					</div>
 				</>
