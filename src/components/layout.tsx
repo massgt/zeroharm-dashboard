@@ -252,10 +252,9 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 							(item.href !== "/" && location.startsWith(item.href));
 
 						return (
-							<>
+							<div key={item.href} className="contents">
 							{item.section && <div className="mb-2 mt-5 px-3 text-[10px] font-semibold tracking-wider text-sidebar-foreground/50 md:group-hover:block md:hidden">{item.section}</div>}
 							<Link
-								key={item.href}
 								href={item.href}
 								onClick={() => setSidebarOpen(false)}
 							>
@@ -320,7 +319,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 									</span>
 								</div>
 							</Link>
-							</>
+							</div>
 						);
 					})}
 				</div>
