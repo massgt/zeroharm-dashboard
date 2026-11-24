@@ -363,7 +363,7 @@ export default function SafetyTalk() {
 								<div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
 									<div className={"h-full rounded-full transition-all " + achievementColor.bar} style={{ width: Math.min(100, summary.achievement) + "%" }} />
 								</div>
-								<p className="mt-2 text-xs text-muted-foreground">{summary.complete} dari {summary.eligibleEmployees} personel memenuhi target</p>
+								<p className="mt-2 text-xs text-muted-foreground">Rata-rata progress dari {summary.eligibleEmployees} personel onsite</p>
 							</CardContent>
 						</Card>
 						<Card className="border-blue-500/30 bg-blue-500/5">
