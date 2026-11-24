@@ -86,6 +86,8 @@ function getProgressColor(value: number) {
 		return {
 			text: "text-emerald-600",
 			bar: "bg-emerald-500",
+			border: "border-emerald-500/30",
+			tint: "bg-emerald-500/5",
 		};
 	}
 
@@ -93,12 +95,16 @@ function getProgressColor(value: number) {
 		return {
 			text: "text-amber-600",
 			bar: "bg-amber-500",
+			border: "border-amber-500/30",
+			tint: "bg-amber-500/5",
 		};
 	}
 
 	return {
 		text: "text-rose-600",
 		bar: "bg-rose-500",
+		border: "border-rose-500/30",
+		tint: "bg-rose-500/5",
 	};
 }
 
@@ -276,6 +282,7 @@ export default function SafetyTalk() {
 	}
 
 	const summary = dashboard?.summary;
+	const achievementColor = getProgressColor(summary?.achievement ?? 0);
 
 	return (
 		<main className="space-y-6">
@@ -346,14 +353,17 @@ export default function SafetyTalk() {
 								<p className="mt-2 text-xs text-muted-foreground">Termasuk personel cuti</p>
 							</CardContent>
 						</Card>
-						<Card className="border-emerald-500/30 bg-emerald-500/5">
+						<Card className={achievementColor.border + " " + achievementColor.tint}>
 							<CardContent className="p-5">
 								<div className="flex items-center justify-between">
-									<p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Overall Achievement</p>
-									<CheckCircle2 className="h-5 w-5 text-emerald-600" />
+									<p className={"text-xs font-semibold uppercase tracking-wide " + achievementColor.text}>Overall Achievement</p>
+									<CheckCircle2 className={"h-5 w-5 " + achievementColor.text} />
 								</div>
-								<div className="mt-3 text-3xl font-bold text-emerald-600">{summary.achievement}%</div>
-								<p className="mt-2 text-xs text-emerald-700/80">{summary.complete} dari {summary.eligibleEmployees} personel memenuhi target</p>
+								<div className={"mt-3 text-3xl font-bold " + achievementColor.text}>{summary.achievement}%</div>
+								<div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+									<div className={"h-full rounded-full transition-all " + achievementColor.bar} style={{ width: Math.min(100, summary.achievement) + "%" }} />
+								</div>
+								<p className="mt-2 text-xs text-muted-foreground">{summary.complete} dari {summary.eligibleEmployees} personel memenuhi target</p>
 							</CardContent>
 						</Card>
 						<Card className="border-blue-500/30 bg-blue-500/5">
