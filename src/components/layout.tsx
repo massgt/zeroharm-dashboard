@@ -48,14 +48,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 	};
 
 	const navItems = [
-		{ href: "/", icon: Activity, label: "Dashboard" },
+		{ href: "/", icon: Activity, label: "Dashboard", section: "MONITORING" },
+		{ href: "/summary", icon: FileBarChart, label: "Summary" },
+		{ href: "/safety-talk", icon: Activity, label: "Safety Talk", section: "SAFETY PROGRAM" },
+		{ href: "/sosialisasi", icon: BookOpen, label: "Sosialisasi IBPR & GR" },
+		{ href: "/safety-campaign", icon: Megaphone, label: "Safety Campaign" },
 		...(isAdmin ? [
-			{ href: "/upload", icon: Upload, label: "Upload Data" },
+			{ href: "/upload", icon: Upload, label: "Upload Data", section: "DATA MANAGEMENT" },
 			{ href: "/members", icon: Users, label: "Kelola Anggota" },
 		] : []),
-		{ href: "/safety-campaign", icon: Megaphone, label: "Safety Campaign" },
-		{ href: "/summary", icon: FileBarChart, label: "Summary" },
-		{ href: "/sosialisasi", icon: BookOpen, label: "Sosialisasi IBPR & GR" },
 	];
 
 	return (
@@ -251,6 +252,8 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 							(item.href !== "/" && location.startsWith(item.href));
 
 						return (
+							<>
+							{item.section && <div className="mb-2 mt-5 px-3 text-[10px] font-semibold tracking-wider text-sidebar-foreground/50 md:group-hover:block md:hidden">{item.section}</div>}
 							<Link
 								key={item.href}
 								href={item.href}
@@ -317,6 +320,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 									</span>
 								</div>
 							</Link>
+							</>
 						);
 					})}
 				</div>
