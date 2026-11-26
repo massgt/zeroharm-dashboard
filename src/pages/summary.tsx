@@ -711,7 +711,7 @@ export default function Summary() {
 							{/* Judul Report */}
 							<div className="min-w-0">
 								<h1 className="text-2xl font-bold text-slate-900">
-									SUMMARY SAFETY ACCOUNTABILITY PROGRAM (SAP) REPORT
+									SUMMARY SAP REPORT
 								</h1>
 
 								<p className="mt-1 text-sm text-slate-500">
