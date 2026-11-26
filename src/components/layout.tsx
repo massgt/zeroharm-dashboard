@@ -49,7 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 	const navItems = [
 		{ href: "/", icon: Activity, label: "Dashboard", section: "MONITORING" },
-		{ href: "/summary", icon: FileBarChart, label: "Summary" },
+		{ href: "/summary", icon: FileBarChart, label: "Summary SAP" },
 		{ href: "/safety-talk", icon: Activity, label: "Safety Talk", section: "SAFETY PROGRAM" },
 		{ href: "/sosialisasi", icon: BookOpen, label: "Sosialisasi IBPR & GR" },
 		{ href: "/safety-campaign", icon: Megaphone, label: "Safety Campaign" },
