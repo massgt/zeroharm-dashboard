@@ -338,7 +338,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 						className="
                 flex
                 items-center
-                justify-center
+                justify-start
                 md:justify-center
                 md:group-hover:justify-start
 
@@ -462,13 +462,20 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 							<Menu className="h-5 w-5" />
 						</Button>
 
-						<img
-							src={CompanyLogo}
-							alt="MVM Logo"
-							className="h-5 w-5 shrink-0"
-						/>
+						<Link
+							href="/"
+							onClick={() => setSidebarOpen(false)}
+							aria-label="Kembali ke Dashboard"
+							className="flex min-w-0 items-center gap-2 rounded-md py-1 pr-1 transition-opacity hover:opacity-80"
+						>
+							<img
+								src={CompanyLogo}
+								alt="MVM Logo"
+								className="h-5 w-5 shrink-0"
+							/>
 
-						<span className="whitespace-nowrap text-sm font-bold tracking-tight">Zero Harm 2.0</span>
+							<span className="whitespace-nowrap text-sm font-bold tracking-tight">Zero Harm 2.0</span>
+						</Link>
 					</div>
 
 					{/* Desktop search */}
