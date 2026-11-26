@@ -409,6 +409,84 @@ function MemberRow({
 	);
 }
 
+function MemberCard({ member, index }: { member: SummaryMember; index: number }) {
+	const opkItems = getOpkItems(member);
+	const missing = getMissingItems(member);
+	const status = statusFor(member.overallPct);
+	const overallStatus =
+		member.overallPct >= 100
+			? "SELESAI"
+			: member.overallPct > 0
+				? "SEBAGIAN"
+				: "BELUM LAPOR";
+
+	return (
+		<div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+			<div className="flex items-start justify-between gap-2">
+				<div className="min-w-0">
+					<div className="text-sm font-bold leading-snug text-slate-900">
+						<span className="mr-1 text-xs font-semibold text-slate-400">{index}.</span>
+						{member.name}
+					</div>
+					<div className="mt-1 text-xs text-slate-500">{member.jabatan}</div>
+					<div className="text-[10px] text-slate-400">{member.nik}</div>
+				</div>
+				<span className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold ${status.bg} ${status.border} ${status.text}`}>
+					{overallStatus}
+				</span>
+			</div>
+
+			<div className="mt-3 rounded-lg bg-slate-50 p-2.5">
+				<div className="flex items-center justify-between gap-2">
+					<span className="text-xs font-semibold text-slate-600">Overall Achievement</span>
+					<span className={`text-lg font-bold tabular-nums ${status.text}`}>{member.overallPct}%</span>
+				</div>
+				<div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-200">
+					<div className={`h-full rounded-full ${status.bar}`} style={{ width: `${Math.min(member.overallPct, 100)}%` }} />
+				</div>
+			</div>
+
+			<div className="mt-3 grid grid-cols-2 gap-2">
+				{([
+					["TTA", member.tta],
+					["Hazard", member.hazard],
+					["Inspeksi", member.inspeksi],
+					["Observasi", member.observasi],
+				] as [string, ComplianceItem][]).map(([label, item]) => (
+					<div key={label} className="rounded-lg border border-slate-100 bg-white p-2">
+						<div className="text-[10px] font-semibold uppercase text-slate-500">{label}</div>
+						<div className="mt-1 flex items-center justify-between gap-2">
+							<span className="text-xs font-semibold text-slate-700 tabular-nums">{item.actual}/{item.target}</span>
+							<span className={`text-xs font-bold tabular-nums ${statusFor(item.pct).text}`}>{item.pct}%</span>
+						</div>
+						<div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+							<div className={`h-full rounded-full ${statusFor(item.pct).bar}`} style={{ width: `${Math.min(item.pct, 100)}%` }} />
+						</div>
+					</div>
+				))}
+			</div>
+
+			{!member.isPjo && opkItems.length > 0 && (
+				<details className="mt-3 rounded-lg border border-slate-200">
+					<summary className="cursor-pointer px-3 py-2.5 text-xs font-semibold text-slate-700">
+						Detail OPK ({opkItems.length} indikator)
+					</summary>
+					<div className="grid grid-cols-1 gap-1.5 border-t border-slate-100 p-2">
+						{opkItems.map(({ label, item }) => (
+							<OpkBox key={label} label={label} item={item} />
+						))}
+					</div>
+				</details>
+			)}
+			<div className="mt-3 border-t border-slate-100 pt-2">
+				<div className="text-[10px] font-semibold text-slate-500">
+					{missing.length === 0 ? "Semua indikator dan OPK telah mencapai target." : `Belum mencapai target: ${missing.map(({ label }) => label).join(", ")}`}
+				</div>
+			</div>
+		</div>
+	);
+}
+
 function getWeekDueDate(weekStr: string, year: number): Date {
 	const weekNum = parseInt(weekStr.replace("W", ""), 10);
 
@@ -742,7 +820,7 @@ export default function Summary() {
 					</div>
 
 					{/* KPI */}
-					<div className="mt-3 grid grid-cols-5 gap-2">
+					<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-5">
 						<div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
 							<div className="text-[8px] font-semibold uppercase text-slate-500">
 								TOTAL ANGGOTA
@@ -815,14 +893,14 @@ export default function Summary() {
 					</div>
 
 					{/* Rekap indikator */}
-					<div className="mt-3 grid grid-cols-[1fr_2fr] gap-2">
+					<div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_2fr]">
 						{/* REKAP INDIKATOR */}
 						<div className="rounded-lg border border-slate-200 px-3 py-2.5">
 							<div className="mb-2 text-[10px] font-bold text-slate-700">
 								REKAP INDIKATOR
 							</div>
 
-							<div className="grid grid-cols-4 gap-2">
+							<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
 								{categorySummary.map((item) => (
 									<div
 										key={item.label}
@@ -886,7 +964,7 @@ export default function Summary() {
 					</div>
 
 					{/* Table */}
-					<div className="mt-3 overflow-hidden rounded-lg border border-slate-300">
+					<div className="mt-3 hidden overflow-hidden rounded-lg border border-slate-300 md:block">
 						<div className="bg-slate-950 px-3 py-1.5 text-[10px] font-bold tracking-wide text-white">
 							DETAIL CAPAIAN SAP & OPK PER ANGGOTA
 						</div>
@@ -942,6 +1020,16 @@ export default function Summary() {
 								))}
 							</tbody>
 						</table>
+					</div>
+
+					{/* Mobile member cards */}
+					<div className="mt-3 space-y-3 md:hidden">
+						<div className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold tracking-wide text-white">
+							DETAIL CAPAIAN SAP & OPK PER ANGGOTA
+						</div>
+						{members.map((member, index) => (
+							<MemberCard key={member.nik} member={member} index={index + 1} />
+						))}
 					</div>
 					{/* Footer */}
 					<div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 text-[8px] text-slate-400">
