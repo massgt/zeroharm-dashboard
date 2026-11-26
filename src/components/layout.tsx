@@ -254,7 +254,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 						return (
 							<div key={item.href} className="contents">
 							{item.section && (
-								<div className="mb-3 mt-6 px-3 text-sm font-semibold tracking-wide text-sidebar-foreground/75 md:group-hover:block md:hidden">
+								<div className="mb-1 mt-6 px-3 text-sm font-semibold tracking-wide text-sidebar-foreground/75 md:group-hover:block md:hidden">
 									{item.section}
 								</div>
 							)}
