@@ -653,23 +653,32 @@ export default function Summary() {
 		try {
 			const element = captureRef.current;
 
-			const dataUrl = await toPng(element, {
-				cacheBust: true,
-				pixelRatio: 2,
-				backgroundColor: "#ffffff",
-				style: {
-					width: "1400px",
-					minWidth: "1400px",
-					maxWidth: "1400px",
-					margin: "0 auto",
-					boxSizing: "border-box",
-				},
-			});
+			// Force the desktop report layout for exports from both mobile and desktop.
+			element.setAttribute("data-exporting", "true");
+			try {
+				const dataUrl = await toPng(element, {
+					cacheBust: true,
+					pixelRatio: 2,
+					backgroundColor: "#ffffff",
+					width: 1400,
+					height: element.scrollHeight,
+					style: {
+						width: "1400px",
+						minWidth: "1400px",
+						maxWidth: "1400px",
+						height: "auto",
+						margin: "0 auto",
+						boxSizing: "border-box",
+					},
+				});
 
-			const link = document.createElement("a");
-			link.download = `SAP-Summary-${selectedWeek || "week"}.png`;
-			link.href = dataUrl;
-			link.click();
+				const link = document.createElement("a");
+				link.download = `SAP-Summary-${selectedWeek || "week"}.png`;
+				link.href = dataUrl;
+				link.click();
+			} finally {
+				element.removeAttribute("data-exporting");
+			}
 		} catch (error) {
 			console.error("Summary capture error:", error);
 		}
@@ -777,7 +786,7 @@ export default function Summary() {
 		"
 				>
 					{/* Header */}
-					<div className="flex flex-col gap-2 border-b border-slate-300 pb-3 sm:flex-row sm:items-start sm:justify-between">
+					<div className="flex flex-col gap-2 border-b border-slate-300 pb-3 sm:flex-row sm:items-start sm:justify-between [data-exporting=true]:flex-row [data-exporting=true]:items-start [data-exporting=true]:justify-between">
 						<div className="flex items-center gap-3">
 							{/* Logo Minergo */}
 							<img
@@ -788,10 +797,10 @@ export default function Summary() {
 
 							{/* Judul Report */}
 							<div className="min-w-0">
-								<h1 className="hidden text-2xl font-bold text-slate-900 md:block">
+								<h1 className="hidden text-2xl font-bold text-slate-900 md:block [data-exporting=true]:block">
 									SUMMARY SAFETY ACCOUNTABILITY PROGRAM (SAP) REPORT
 								</h1>
-								<h1 className="text-lg font-bold text-slate-900 md:hidden">
+								<h1 className="text-lg font-bold text-slate-900 md:hidden [data-exporting=true]:hidden">
 									SUMMARY SAP
 								</h1>
 
@@ -801,7 +810,7 @@ export default function Summary() {
 							</div>
 						</div>
 
-						<div className="flex flex-col items-start sm:items-end">
+						<div className="flex flex-col items-start sm:items-end [data-exporting=true]:items-end">
 							<div className="text-[15px] font-bold leading-tight text-slate-800">
 								{selectedWeekData?.label || selectedWeek}
 							</div>
@@ -823,7 +832,7 @@ export default function Summary() {
 					</div>
 
 					{/* KPI */}
-					<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-5">
+					<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-5 [data-exporting=true]:grid-cols-5">
 						<div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
 							<div className="text-[8px] font-semibold uppercase text-slate-500">
 								TOTAL ANGGOTA
@@ -896,14 +905,14 @@ export default function Summary() {
 					</div>
 
 					{/* Rekap indikator */}
-					<div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_2fr]">
+					<div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_2fr] [data-exporting=true]:grid-cols-[1fr_2fr]">
 						{/* REKAP INDIKATOR */}
 						<div className="rounded-lg border border-slate-200 px-3 py-2.5">
 							<div className="mb-2 text-[10px] font-bold text-slate-700">
 								REKAP INDIKATOR
 							</div>
 
-							<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+							<div className="grid grid-cols-2 gap-2 sm:grid-cols-4 [data-exporting=true]:grid-cols-4">
 								{categorySummary.map((item) => (
 									<div
 										key={item.label}
@@ -967,7 +976,7 @@ export default function Summary() {
 					</div>
 
 					{/* Table */}
-					<div className="mt-3 hidden overflow-hidden rounded-lg border border-slate-300 md:block">
+					<div className="mt-3 hidden overflow-hidden rounded-lg border border-slate-300 md:block [data-exporting=true]:block">
 						<div className="bg-slate-950 px-3 py-1.5 text-[10px] font-bold tracking-wide text-white">
 							DETAIL CAPAIAN SAP & OPK PER ANGGOTA
 						</div>
@@ -1026,7 +1035,7 @@ export default function Summary() {
 					</div>
 
 					{/* Mobile member cards */}
-					<div className="mt-3 space-y-3 md:hidden">
+					<div className="mt-3 space-y-3 md:hidden [data-exporting=true]:hidden">
 						<div className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold tracking-wide text-white">
 							DETAIL CAPAIAN SAP & OPK PER ANGGOTA
 						</div>
