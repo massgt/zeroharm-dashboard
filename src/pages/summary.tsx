@@ -800,8 +800,8 @@ export default function Summary() {
 								<h1 className="hidden text-2xl font-bold text-slate-900 md:block [data-exporting=true]:block">
 									SUMMARY SAFETY ACCOUNTABILITY PROGRAM (SAP) REPORT
 								</h1>
-								<h1 className="text-lg font-bold text-slate-900 md:hidden [data-exporting=true]:hidden">
-									SUMMARY SAP
+								<h1 className="text-base font-bold leading-tight text-slate-900 md:hidden [data-exporting=true]:hidden">
+									SUMMARY SAFETY ACCOUNTABILITY PROGRAM (SAP) REPORT
 								</h1>
 
 								<p className="mt-1 text-sm text-slate-500">
