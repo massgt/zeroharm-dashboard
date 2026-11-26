@@ -777,7 +777,7 @@ export default function Summary() {
 		"
 				>
 					{/* Header */}
-					<div className="flex items-start justify-between border-b border-slate-300 pb-3">
+					<div className="flex flex-col gap-2 border-b border-slate-300 pb-3 sm:flex-row sm:items-start sm:justify-between">
 						<div className="flex items-center gap-3">
 							{/* Logo Minergo */}
 							<img
@@ -788,8 +788,11 @@ export default function Summary() {
 
 							{/* Judul Report */}
 							<div className="min-w-0">
-								<h1 className="text-2xl font-bold text-slate-900">
-									SUMMARY SAP REPORT
+								<h1 className="hidden text-2xl font-bold text-slate-900 md:block">
+									SUMMARY SAFETY ACCOUNTABILITY PROGRAM (SAP) REPORT
+								</h1>
+								<h1 className="text-lg font-bold text-slate-900 md:hidden">
+									SUMMARY SAP
 								</h1>
 
 								<p className="mt-1 text-sm text-slate-500">
@@ -798,7 +801,7 @@ export default function Summary() {
 							</div>
 						</div>
 
-						<div className="flex flex-col items-end">
+						<div className="flex flex-col items-start sm:items-end">
 							<div className="text-[15px] font-bold leading-tight text-slate-800">
 								{selectedWeekData?.label || selectedWeek}
 							</div>
