@@ -49,7 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 	const navItems = [
 		{ href: "/", icon: Activity, label: "Dashboard", section: "MONITORING" },
-		{ href: "/summary", icon: FileBarChart, label: "Summary" },
+		{ href: "/summary", icon: FileBarChart, label: "Summary SAP" },
 		{ href: "/safety-talk", icon: Activity, label: "Safety Talk", section: "SAFETY PROGRAM" },
 		{ href: "/sosialisasi", icon: BookOpen, label: "Sosialisasi IBPR & GR" },
 		{ href: "/safety-campaign", icon: Megaphone, label: "Safety Campaign" },
@@ -254,7 +254,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 						return (
 							<div key={item.href} className="contents">
 							{item.section && (
-								<div className="mb-3 mt-6 px-3 text-base font-bold tracking-wider text-sidebar-foreground/80 md:group-hover:block md:hidden">
+								<div className="mb-1 mt-6 px-3 text-sm font-semibold tracking-wide text-sidebar-foreground/75 md:group-hover:block md:hidden">
 									{item.section}
 								</div>
 							)}
@@ -338,7 +338,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 						className="
                 flex
                 items-center
-                justify-center
+                justify-start
                 md:justify-center
                 md:group-hover:justify-start
 
@@ -434,19 +434,24 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         ===================================================== */}
 				<header
 					className="
-            h-16
+            sticky
+            top-0
+            z-30
+            h-14
+            md:h-16
             flex
             items-center
             justify-between
-            px-4
+            px-3
             md:px-6
             border-b
             bg-card
             shrink-0
+            shadow-sm
           "
 				>
 					{/* Mobile header */}
-					<div className="flex items-center gap-2 md:hidden">
+					<div className="flex min-w-0 items-center gap-2 md:hidden">
 						<Button
 							variant="ghost"
 							size="icon"
@@ -457,13 +462,20 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 							<Menu className="h-5 w-5" />
 						</Button>
 
-						<img
-							src={CompanyLogo}
-							alt="MVM Logo"
-							className="h-5 w-5 shrink-0"
-						/>
+						<Link
+							href="/"
+							onClick={() => setSidebarOpen(false)}
+							aria-label="Kembali ke Dashboard"
+							className="flex min-w-0 items-center gap-2 rounded-md py-1 pr-1 transition-opacity hover:opacity-80"
+						>
+							<img
+								src={CompanyLogo}
+								alt="MVM Logo"
+								className="h-5 w-5 shrink-0"
+							/>
 
-						<span className="font-bold">Zero Harm 2.0</span>
+							<span className="whitespace-nowrap text-sm font-bold tracking-tight">Zero Harm 2.0</span>
+						</Link>
 					</div>
 
 					{/* Desktop search */}
@@ -499,11 +511,11 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 					</div>
 
 					{/* Right actions */}
-					<div className="flex items-center gap-2 md:gap-4">
+					<div className="flex shrink-0 items-center gap-1 md:gap-4">
 						<Button
 							variant="ghost"
 							size="icon"
-							className="relative text-muted-foreground"
+							className="relative shrink-0 text-muted-foreground"
 						>
 							<Bell className="h-5 w-5" />
 
@@ -525,7 +537,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-muted-foreground"
+							className="hidden text-muted-foreground sm:inline-flex"
 						>
 							<Settings className="h-5 w-5" />
 						</Button>
@@ -534,7 +546,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
 								<LogOut className="h-4 w-4" /><span className="hidden sm:inline">Logout</span>
 							</Button>
 						) : (
-							<Link href="/login" className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+							<Link href="/login" className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-input bg-background px-2.5 text-xs font-semibold shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground sm:gap-2 sm:px-3 sm:text-sm">
 								<LogIn className="h-4 w-4" /><span>Login Admin</span>
 							</Link>
 						)}
